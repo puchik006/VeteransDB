@@ -1,19 +1,49 @@
 {
     "Veterans": [
         {
-            "FullName": "lsdfsdf",
-            "ImageURL": "StreamingAssets",
-            "DateOfBitrh": ";sf;sdf",
-            "DateOfDeath": ";sf;sdf",
-            "Discription": "ksdf;sdflsdflsefllzxc; lsrfs srglaskl lkasfl asdflalasdf asdfgkksdkk",
+            "FullName": "1111111111",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\1111111111.png",
+            "DateOfBitrh": "ыфвфыв",
+            "DateOfDeath": "фывфыв",
+            "MainInfo": "ыв ыва лфыв лфыва лфыа жфыдлва лфывалт тфывл лтфывадл лфываллл фыва",
             "Rewards": [
                 {
-                    "RewardName": "seflsdf",
-                    "YearOfReward": "1940"
+                    "RewardName": "ыва",
+                    "YearOfReward": "ыва"
                 },
                 {
-                    "RewardName": "l;sdflsdf",
-                    "YearOfReward": "1943"
+                    "RewardName": "фыв",
+                    "YearOfReward": "222"
+                }
+            ]
+        },
+        {
+            "FullName": "22222222",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\22222222.png",
+            "DateOfBitrh": "фыв фыв ",
+            "DateOfDeath": "ываываыва",
+            "MainInfo": "фыва фыва  ава фыва авава фыва фыаф  фыва фыв фываы",
+            "Rewards": [
+                {
+                    "RewardName": "2312",
+                    "YearOfReward": "ываыва"
+                },
+                {
+                    "RewardName": "555",
+                    "YearOfReward": "2132"
+                }
+            ]
+        },
+        {
+            "FullName": "223кк23322",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\223кк23322.png",
+            "DateOfBitrh": "ыва3а23",
+            "DateOfDeath": "цуацукцук",
+            "MainInfo": "фыа фыва офывао офыжвадлфыва лтфывжадл фыва",
+            "Rewards": [
+                {
+                    "RewardName": "33у2",
+                    "YearOfReward": "1231"
                 }
             ]
         }

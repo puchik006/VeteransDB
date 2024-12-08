@@ -17,7 +17,7 @@ public struct Dm_JSON
     public string ImageURL;
     public string DateOfBitrh;
     public string DateOfDeath;
-    public string Discription;
+    public string MainInfo;
     public List<Dmm_JSON> Rewards;
 }
 

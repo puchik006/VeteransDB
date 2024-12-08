@@ -2,17 +2,33 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class scr_RewardString: MonoBehaviour
+public class scr_RewardString : MonoBehaviour
 {
     [SerializeField] TMP_InputField _txtRewardName;
-    [SerializeField] private TMP_InputField _txtRewardYear;
+    [SerializeField] TMP_InputField _txtRewardYear;
     [SerializeField] private Button _btnDeleteReward;
 
-    public TMP_InputField TxtRewardName { get => _txtRewardName;}
-    public TMP_InputField TxtRewardYear { get => _txtRewardYear;}
+    private scr_MainForm _mainForm;
+
+    public TMP_InputField RewardName { get => _txtRewardName; set => _txtRewardName = value; }
+    public TMP_InputField RewardYear { get => _txtRewardYear; set => _txtRewardYear = value; }
+    
+
+    private void Awake()
+    {
+        _btnDeleteReward.onClick.AddListener(() => V_DeleteReward());
+    }
+
+    public void V_INITIALIZE(scr_MainForm mainForm)
+    {
+        _mainForm = mainForm;
+    }
 
     private void V_DeleteReward()
     {
-        //delete reward from card
+        if (_mainForm != null)
+        {
+            _mainForm.V_DeleteReward(this); 
+        }
     }
 }
