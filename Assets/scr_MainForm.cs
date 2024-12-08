@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,33 +32,117 @@ public class scr_MainForm : MonoBehaviour
 
     private List<scr_RewardString> _rewardStrings;
 
+
+    private void Awake()
+    {
+        _rewardStrings = new List<scr_RewardString>();
+
+
+        _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
+        _btnAddReward.onClick.AddListener(() => V_AddReward());
+        _btnSaveCard.onClick.AddListener(() => V_SaveDataToJSON());
+    }
+
+
     private void V_AddPhoto()
     {
-        // on press button add photo it should be possible for user to choose photo from explorer
-        // photo should be saved in StreamingAssets folder
-        // in JSON we need to save just path of the photo in StreamingsAssets
+        // Open a file dialog for the user to select a photo
+        string sourceFilePath = UnityEditor.EditorUtility.OpenFilePanel("Select an Image", "", "png,jpg,jpeg");
+        if (string.IsNullOrEmpty(sourceFilePath))
+        {
+            Debug.LogWarning("No file selected.");
+            return;
+        }
+
+        // Get the file name and define the target path
+        string fileName = System.IO.Path.GetFileName(sourceFilePath);
+        string targetPath = System.IO.Path.Combine(Application.streamingAssetsPath, fileName);
+
+        // Copy the file to StreamingAssets
+        try
+        {
+            System.IO.File.Copy(sourceFilePath, targetPath, true);
+            Debug.Log($"File copied to: {targetPath}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to copy file: {e.Message}");
+            return;
+        }
+
+        // Save the relative path
+        string relativePath = $"StreamingAssets/{fileName}";
+
+        _inputImage.sprite = LoadSpriteFromPath(targetPath);
+
+        // Update your JSON object or field
+        Debug.Log($"Saved relative path: {relativePath}");
+    }
+
+
+    private Sprite LoadSpriteFromPath(string filePath)
+    {
+        byte[] fileData = File.ReadAllBytes(filePath);
+        Texture2D texture = new Texture2D(2, 2);
+        texture.LoadImage(fileData);
+        return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
     }
 
     private void V_AddReward()
     {
-        // when press button add reward should be instantiate new reward prefab
-        // instantiate reward string into rewards list place
+        scr_RewardString newReward = Instantiate(_rewardStringPrefab, _rewardsListPlace.transform);
+        _rewardStrings.Add(newReward);
     }
 
-    private void V_DeleteReward()
+    private void V_DeleteReward(scr_RewardString reward)
     {
-        // reward should be deleted
+        _rewardStrings.Remove(reward);
+        Destroy(reward.gameObject);
     }
 
     private void V_DeleteAllRewards()
     {
-        // this method need to clean reward list
+        foreach (var reward in _rewardStrings)
+        {
+            Destroy(reward.gameObject);
+        }
+        _rewardStrings.Clear();
     }
-
 
     private void V_SaveDataToJSON()
     {
-        // when press button save should save all fields according scructure to JSON
-        // fro rewards it should check all that exist in current form and save it too
+        D_JSON jsonData = new D_JSON
+        {
+            Veterans = new List<Dm_JSON>
+        {
+            new Dm_JSON
+            {
+                FullName = _txtInputFIO.text,
+                ImageURL = $"StreamingAssets/{System.IO.Path.GetFileName(_inputImage.sprite.name)}", // Use the saved relative path
+                DateOfBitrh = _txtInputDateOfBirth.text,
+                DateOfDeath = _txtInputDateofDeath.text,
+                Discription = _txtMainInfo.text,
+                Rewards = new List<Dmm_JSON>()
+            }
+        }
+        };
+
+        // Add rewards from the form
+        foreach (var reward in _rewardStrings)
+        {
+            jsonData.Veterans[0].Rewards.Add(new Dmm_JSON
+            {
+                RewardName = reward.TxtRewardName.text,
+                YearOfReward = reward.TxtRewardYear.text
+            });
+        }
+
+        // Convert to JSON and save
+        string json = JsonUtility.ToJson(jsonData, true);
+        string path = System.IO.Path.Combine(Application.streamingAssetsPath, "data.json");
+        System.IO.File.WriteAllText(path, json);
+
+        Debug.Log($"JSON saved to: {path}");
     }
+
 }
