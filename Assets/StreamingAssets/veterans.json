@@ -1,84 +1,30 @@
 {
     "Veterans": [
         {
-            "FullName": "1111111111",
-            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\1111111111.png",
-            "DateOfBitrh": "223",
+            "FullName": "Иванов Петр Ивнович",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\Photo\\Иванов Петр Ивнович.png",
+            "DateOfBitrh": "ывафыва",
+            "DateOfDeath": "фывафыва",
+            "MainInfo": "ываыва ыва ыва ыыва ываы ",
+            "Rewards": [
+                {
+                    "RewardName": "ываыа",
+                    "YearOfReward": "23"
+                }
+            ]
+        },
+        {
+            "FullName": "Сергеев Виктор Иванович",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\Photo\\Сергеев Виктор Иванович.png",
+            "DateOfBitrh": "фывфыв",
             "DateOfDeath": "фывфыв",
-            "MainInfo": "ыв ыва лфыв лфыва лфыа жфыдлва лфывалт тфывл лтфывадл лфываллл фыва",
+            "MainInfo": "цйв йц фвыа фыва уацуа ывм ",
             "Rewards": [
                 {
-                    "RewardName": "ыва",
-                    "YearOfReward": "ыва"
-                },
-                {
-                    "RewardName": "фыв",
-                    "YearOfReward": "222"
+                    "RewardName": "йцуйцу",
+                    "YearOfReward": "223"
                 }
             ]
-        },
-        {
-            "FullName": "22222222",
-            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\22222222.png",
-            "DateOfBitrh": "фыв фыв ",
-            "DateOfDeath": "ываываыва",
-            "MainInfo": "фыва фыва  ава фыва авава фыва фыаф  фыва фыв фываы",
-            "Rewards": [
-                {
-                    "RewardName": "2312",
-                    "YearOfReward": "ываыва"
-                },
-                {
-                    "RewardName": "555",
-                    "YearOfReward": "2132"
-                }
-            ]
-        },
-        {
-            "FullName": "223кк23322",
-            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\223кк23322.png",
-            "DateOfBitrh": "22222",
-            "DateOfDeath": "453453",
-            "MainInfo": "sdfsdfsdf",
-            "Rewards": [
-                {
-                    "RewardName": "33у2",
-                    "YearOfReward": "1231"
-                },
-                {
-                    "RewardName": "wer",
-                    "YearOfReward": "33"
-                }
-            ]
-        },
-        {
-            "FullName": "sdfj3234 bd",
-            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\sdfj3234 bd.png",
-            "DateOfBitrh": "sdf er ergerg",
-            "DateOfDeath": "sdfsdf efwef",
-            "MainInfo": "sdfkjsdf jdkfsdkj jbwejkb jfjwewewe wef wef wef",
-            "Rewards": [
-                {
-                    "RewardName": "sdfsdf",
-                    "YearOfReward": "234"
-                },
-                {
-                    "RewardName": "3234",
-                    "YearOfReward": "4345"
-                },
-                {
-                    "RewardName": "234266",
-                    "YearOfReward": "2342"
-                }
-            ]
-        },
-        {
-            "FullName": "Погорельский Самуил Михайлович",
-            "ImageURL": "",
-            "DateOfBitrh": "",
-            "DateOfDeath": "",
-            "MainInfo": "",
-            "Rewards": []
         }
     ]
 }

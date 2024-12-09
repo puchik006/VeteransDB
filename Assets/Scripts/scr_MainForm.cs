@@ -2,12 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using static scr_General;
 
 public class scr_MainForm : MonoBehaviour
 {
@@ -74,41 +73,123 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Photo
-    private void V_AddPhoto()
+    //private void V_AddPhoto()
+    //{
+    //    //// Open the file picker using StandaloneFileBrowser
+    //    //var extensions = new[] {
+    //    //    new ExtensionFilter("Image Files", "png", "jpg", "jpeg")
+    //    //};
+    //    //string[] paths = StandaloneFileBrowser.OpenFilePanel("Select an Image", "", extensions, false);
+
+    //    //if (paths.Length > 0 && !string.IsNullOrEmpty(paths[0]))
+    //    //{
+    //    //    _photoFileSourcePath = paths[0];
+    //    //    _inputImage.sprite = LoadSpriteFromPath(paths[0]);
+    //    //}
+    //    //else
+    //    //{
+    //    //    Debug.LogWarning("No file selected.");
+    //    //}
+    //}
+
+
+    //public void V_AddPhoto()
+    //{
+    //    // Call the JavaScript function and pass the Unity method name as a string
+    //    Application.ExternalCall("openFilePicker", "HandleFileSelection");
+    //}
+
+    //// This method will be called from JavaScript with the base64 data
+    //public void HandleFileSelection(string base64Data)
+    //{
+    //    Debug.Log("File data received: " + base64Data);
+
+    //    if (base64Data.Contains("base64"))
+    //    {
+    //        // Extract the base64 part and convert it to bytes
+    //        byte[] fileBytes = System.Convert.FromBase64String(base64Data.Split(',')[1]);
+
+    //        // Create a Texture2D from the byte array
+    //        Texture2D texture = new Texture2D(2, 2);
+    //        if (texture.LoadImage(fileBytes))
+    //        {
+    //            // Successfully loaded image
+    //            _inputImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+    //        }
+    //        else
+    //        {
+    //            Debug.LogError("Failed to load image from file data.");
+    //        }
+
+    //        // Optionally save the image
+    //        byte[] pngData = texture.EncodeToPNG();
+    //        WebGLFileSaver.SaveFile(pngData, "uploaded_image.png", "image/png");
+    //    }
+    //    else
+    //    {
+    //        Debug.LogError("Invalid file data received.");
+    //    }
+    //}
+
+    [DllImport("__Internal")]
+    private static extern void V_AddPhoto(); // This links to the V_AddPhoto JavaScript function
+
+    // Call this method from Unity to open the file picker
+    public void OpenFilePicker()
     {
-        string sourceFilePath = EditorUtility.OpenFilePanel("Select an Image", "", "png,jpg,jpeg");
-
-        if (string.IsNullOrEmpty(sourceFilePath))
-        {
-            Debug.LogWarning("No file selected.");
-            return;
-        }
-
-        _photoFileSourcePath = sourceFilePath;
-        _inputImage.sprite = LoadSpriteFromPath(sourceFilePath);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            V_AddPhoto(); // Call the JS function to open file picker
+#endif
     }
 
+    // This method will be called when the base64 image data is received from JavaScript
+    public void OnImageSelected(string base64Image)
+    {
+        // Process the base64 image string, e.g., display it in Unity, or save it
+        Debug.Log("Image selected: " + base64Image);
+
+        // Example: convert the base64 string to a texture and apply to a material
+        byte[] imageBytes = System.Convert.FromBase64String(base64Image.Substring(base64Image.IndexOf(",") + 1));
+        Texture2D texture = new Texture2D(2, 2);
+        texture.LoadImage(imageBytes); // Load image from bytes
+
+        // Apply the texture to a material (example)
+        Renderer renderer = GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.material.mainTexture = texture;
+        }
+    }
+
+    //
     private void V_SavePhotoOnDisk(string fileName)
     {
         if (_photoFileSourcePath == null) return;
 
         string fileExtension = Path.GetExtension(_photoFileSourcePath);
         string fileNameWithExtension = fileName + fileExtension;
-        string targetPath = Path.Combine(Application.streamingAssetsPath, fileNameWithExtension);
+        string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
+        string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
 
-        _imageURL = targetPath;
+        _imageURL = targetPath; 
+
+        if (!Directory.Exists(photoFolderPath))
+        {
+            Directory.CreateDirectory(photoFolderPath);  
+            Debug.Log($"Created folder at: {photoFolderPath}");
+        }
 
         try
         {
-            File.Copy(_photoFileSourcePath, targetPath, true);
+            File.Copy(_photoFileSourcePath, targetPath, true); 
             Debug.Log($"File copied to: {targetPath}");
         }
         catch (Exception e)
         {
             Debug.LogError($"Failed to copy file: {e.Message}");
-            return;
         }
     }
+
 
     private Sprite LoadSpriteFromPath(string filePath)
     {
@@ -391,7 +472,6 @@ public class scr_MainForm : MonoBehaviour
             else
             {
                 Debug.Log($"Fetched content: {webRequest.downloadHandler.text}");
-                // Process the response if needed
             }
         }
     }
