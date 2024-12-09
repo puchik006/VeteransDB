@@ -3,7 +3,7 @@
         {
             "FullName": "1111111111",
             "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\1111111111.png",
-            "DateOfBitrh": "ыфвфыв",
+            "DateOfBitrh": "222222222222",
             "DateOfDeath": "фывфыв",
             "MainInfo": "ыв ыва лфыв лфыва лфыа жфыдлва лфывалт тфывл лтфывадл лфываллл фыва",
             "Rewards": [
@@ -37,13 +37,38 @@
         {
             "FullName": "223кк23322",
             "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\223кк23322.png",
-            "DateOfBitrh": "ыва3а23",
-            "DateOfDeath": "цуацукцук",
-            "MainInfo": "фыа фыва офывао офыжвадлфыва лтфывжадл фыва",
+            "DateOfBitrh": "22222",
+            "DateOfDeath": "453453",
+            "MainInfo": "sdfsdfsdf",
             "Rewards": [
                 {
                     "RewardName": "33у2",
                     "YearOfReward": "1231"
+                },
+                {
+                    "RewardName": "wer",
+                    "YearOfReward": "33"
+                }
+            ]
+        },
+        {
+            "FullName": "sdfj3234 bd",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\sdfj3234 bd.png",
+            "DateOfBitrh": "sdf er ergerg",
+            "DateOfDeath": "sdfsdf efwef",
+            "MainInfo": "sdfkjsdf jdkfsdkj jbwejkb jfjwewewe wef wef wef",
+            "Rewards": [
+                {
+                    "RewardName": "sdfsdf",
+                    "YearOfReward": "234"
+                },
+                {
+                    "RewardName": "3234",
+                    "YearOfReward": "4345"
+                },
+                {
+                    "RewardName": "234266",
+                    "YearOfReward": "2342"
                 }
             ]
         }

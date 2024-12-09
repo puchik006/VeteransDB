@@ -5,6 +5,7 @@ using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using static scr_General;
 
 public class scr_MainForm : MonoBehaviour
 {
@@ -31,24 +32,24 @@ public class scr_MainForm : MonoBehaviour
     [SerializeField] private GameObject _rewardsListPlace;
     [SerializeField] private GameObject _veteranListPlace;
 
-    private List<scr_RewardString> _rewardStrings;
-    private List<scr_SearchString> _searchStrings;
+    private List<scr_RewardString> _rewardStrings = new();
+    private List<scr_SearchString> _searchStrings = new();
 
+    private string _databasePath;
     private string _photoFileSourcePath;
     private string _imageURL;
 
 
-    private void Awake()
+    void Awake()
     {
-        _rewardStrings = new List<scr_RewardString>();
-        _searchStrings = new List<scr_SearchString>();
+       _databasePath =  Path.Combine(Application.streamingAssetsPath, m_General.GET_DatabaseNameJSON);
 
         V_CheckStreamingAssets();
         V_ShowAllData();
 
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
-        _btnSaveCard.onClick.AddListener(() => V_SaveDataToJSON());
+        _btnSaveCard.onClick.AddListener(() => V_SaveCard());
         _btnAddCard.onClick.AddListener(() => V_NewCard());
         _btnSearch.onClick.AddListener(() => V_Search());
         
@@ -143,11 +144,17 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Save
-    private void V_SaveDataToJSON()
+    private void V_SaveCard()
     {
         V_SavePhotoOnDisk(_txtInputFIO.text);
+        V_SaveDataToJSON();
+        V_Search();
+    }
 
-        string path = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
+    private void V_SaveDataToJSON()
+    {
+        string path = _databasePath;
+
         D_JSON jsonData;
 
         if (File.Exists(path))
@@ -218,8 +225,6 @@ public class scr_MainForm : MonoBehaviour
         Debug.Log($"JSON saved to: {path}");
 
         _photoFileSourcePath = null;
-
-        V_Search();
     }
 
     //New Card
@@ -260,7 +265,7 @@ public class scr_MainForm : MonoBehaviour
     //Search
     private void V_ShowAllData()
     {
-        string path = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
+        string path = _databasePath;
 
         if (File.Exists(path))
         {
@@ -302,7 +307,7 @@ public class scr_MainForm : MonoBehaviour
         }
         else 
         {
-            string path = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
+            string path = _databasePath;
 
             if (File.Exists(path))
             {

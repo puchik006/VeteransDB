@@ -31,3 +31,9 @@ public struct Dmm_JSON
     public string YearOfReward;
 }
 
+[Serializable]
+public struct D_ApplicaionData
+{
+    public string _str_DatabaseNameJSON;
+}
+
