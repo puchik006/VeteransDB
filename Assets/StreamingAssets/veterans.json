@@ -3,7 +3,7 @@
         {
             "FullName": "1111111111",
             "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\1111111111.png",
-            "DateOfBitrh": "222222222222",
+            "DateOfBitrh": "223",
             "DateOfDeath": "фывфыв",
             "MainInfo": "ыв ыва лфыв лфыва лфыа жфыдлва лфывалт тфывл лтфывадл лфываллл фыва",
             "Rewards": [
@@ -71,6 +71,14 @@
                     "YearOfReward": "2342"
                 }
             ]
+        },
+        {
+            "FullName": "Погорельский Самуил Михайлович",
+            "ImageURL": "",
+            "DateOfBitrh": "",
+            "DateOfDeath": "",
+            "MainInfo": "",
+            "Rewards": []
         }
     ]
 }

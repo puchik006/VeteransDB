@@ -1,9 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 using static scr_General;
 
@@ -16,6 +18,7 @@ public class scr_MainForm : MonoBehaviour
     [SerializeField] private Image _inputImage;
     [SerializeField] private TMP_InputField _txtMainInfo;
     [SerializeField] private TMP_InputField _txtSearchField;
+    [SerializeField] private TMP_InputField _txtPamyat;
 
     [Header("Buttons")]
     [SerializeField] private Button _btnAddCard;
@@ -23,6 +26,7 @@ public class scr_MainForm : MonoBehaviour
     [SerializeField] private Button _btnAddPhoto;
     [SerializeField] private Button _btnAddReward;
     [SerializeField] private Button _btnSearch;
+    [SerializeField] private Button _btnCheckPamyat;
 
     [Header("String prefabs")]
     [SerializeField] private scr_RewardString _rewardStringPrefab;
@@ -52,6 +56,7 @@ public class scr_MainForm : MonoBehaviour
         _btnSaveCard.onClick.AddListener(() => V_SaveCard());
         _btnAddCard.onClick.AddListener(() => V_NewCard());
         _btnSearch.onClick.AddListener(() => V_Search());
+        _btnCheckPamyat.onClick.AddListener(() => V_CheckPamyatNaroda());
         
     }
 
@@ -105,6 +110,8 @@ public class scr_MainForm : MonoBehaviour
 
     private Sprite LoadSpriteFromPath(string filePath)
     {
+        if (filePath == string.Empty) return null;
+
         byte[] fileData = File.ReadAllBytes(filePath);
         Texture2D texture = new Texture2D(2, 2);
         texture.LoadImage(fileData);
@@ -327,4 +334,64 @@ public class scr_MainForm : MonoBehaviour
             }
         }
     }
+
+    //Check Pamyat Naroda
+    public void V_CheckPamyatNaroda()
+    {
+        string linkTemplate = "https://pamyat-naroda.ru/heroes/?last_name=FAMILYNAME&first_name=NAME&middle_name=MIDDLENAME" +
+                              "&group=all&types=pamyat_commander:nagrady_nagrad_doc:nagrady_uchet_kartoteka:nagrady_ubilein_kartoteka:" +
+                              "pdv_kart_in:pdv_kart_in_inostranec:pamyat_voenkomat:potery_vpp:pamyat_zsp_parts:kld_ran:kld_bolezn:kld_polit:kld_upk:kld_vmf:kld_partizan:potery_doneseniya_o_poteryah:" +
+                              "potery_gospitali:potery_utochenie_poter:potery_spiski_zahoroneniy:potery_voennoplen:potery_iskluchenie_iz_spiskov:potery_kartoteki:potery_rvk_extra:potery_isp_extra:" +
+                              "same_doroga:same_rvk:same_guk:potery_knigi_pamyati&page=1&grouppersons=1";
+
+        string fullName = _txtInputFIO.text;
+        string[] nameParts = fullName.Split(' ');
+
+        if (nameParts.Length < 2 || nameParts.Length > 3)
+        {
+            _txtPamyat.text = "Invalid name format. Please provide 'Family Name First Name [Middle Name]'.";
+            return;
+        }
+
+        string familyName = nameParts[0];
+        string firstName = nameParts[1];
+        string middleName = nameParts.Length == 3 ? nameParts[2] : ""; 
+
+        // Replace placeholders in the link template.
+        string finalLink = linkTemplate
+            .Replace("FAMILYNAME", Uri.EscapeDataString(familyName))
+            .Replace("MIDDLENAME", Uri.EscapeDataString(middleName))
+            .Replace("NAME", Uri.EscapeDataString(firstName));
+
+        // Save the link in the text field.
+        _txtPamyat.text = finalLink;
+
+        // Execute the link to fetch its content.
+        StartCoroutine(FetchLinkContent(finalLink));
+
+        _txtPamyat.onSelect.AddListener(delegate { Application.OpenURL(finalLink); });
+    }
+
+    private IEnumerator FetchLinkContent(string url)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        {
+            // Set a user-agent header to mimic a browser.
+            webRequest.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36");
+
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError($"Error fetching URL: {webRequest.error}");
+                _txtPamyat.text = "Failed to fetch the link. Check console for details.";
+            }
+            else
+            {
+                Debug.Log($"Fetched content: {webRequest.downloadHandler.text}");
+                // Process the response if needed
+            }
+        }
+    }
+
 }
