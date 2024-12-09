@@ -40,7 +40,7 @@ public class scr_MainForm : MonoBehaviour
     private List<scr_SearchString> _searchStrings = new();
 
     private string _databasePath;
-    private string _photoFileSourcePath;
+    //private string _photoFileSourcePath;
     private string _imageURL;
 
 
@@ -136,31 +136,72 @@ public class scr_MainForm : MonoBehaviour
     //
     //
     //
+    //private void V_SavePhotoOnDisk(string fileName)
+    //{
+    //    if (_photoFileSourcePath == null) return;
+
+    //    string fileExtension = Path.GetExtension(_photoFileSourcePath);
+    //    string fileNameWithExtension = fileName + fileExtension;
+    //    string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
+    //    string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
+
+    //    _imageURL = targetPath; 
+
+    //    if (!Directory.Exists(photoFolderPath))
+    //    {
+    //        Directory.CreateDirectory(photoFolderPath);  
+    //        Debug.Log($"Created folder at: {photoFolderPath}");
+    //    }
+
+    //    try
+    //    {
+    //        File.Copy(_photoFileSourcePath, targetPath, true); 
+    //        Debug.Log($"File copied to: {targetPath}");
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        Debug.LogError($"Failed to copy file: {e.Message}");
+    //    }
+    //}
+
     private void V_SavePhotoOnDisk(string fileName)
     {
-        if (_photoFileSourcePath == null) return;
+        if (_imageInput == null || _imageInput.sprite == null) return;
 
-        string fileExtension = Path.GetExtension(_photoFileSourcePath);
-        string fileNameWithExtension = fileName + fileExtension;
+        // Get the sprite from _imageInput
+        Sprite sprite = _imageInput.sprite;
+        Texture2D texture = sprite.texture;
+
+        // Ensure the texture is readable (if not, copy the texture data to a new Texture2D)
+        if (!texture.isReadable)
+        {
+            texture = new Texture2D(sprite.texture.width, sprite.texture.height, sprite.texture.format, false);
+            texture.SetPixels(sprite.texture.GetPixels());
+            texture.Apply();
+        }
+
+        // Create the folder if it doesn't exist
         string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
-        string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
-
-        _imageURL = targetPath; 
-
         if (!Directory.Exists(photoFolderPath))
         {
-            Directory.CreateDirectory(photoFolderPath);  
+            Directory.CreateDirectory(photoFolderPath);
             Debug.Log($"Created folder at: {photoFolderPath}");
         }
 
+        // Save the texture to a PNG file
+        byte[] pngData = texture.EncodeToPNG();
+        string fileNameWithExtension = fileName + ".png";  // Save as PNG
+        string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
+
         try
         {
-            File.Copy(_photoFileSourcePath, targetPath, true); 
-            Debug.Log($"File copied to: {targetPath}");
+            File.WriteAllBytes(targetPath, pngData);  // Save PNG to disk
+            _imageURL = targetPath;  // Store the path if needed
+            Debug.Log($"File saved to: {targetPath}");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to copy file: {e.Message}");
+            Debug.LogError($"Failed to save image: {e.Message}");
         }
     }
 
@@ -288,7 +329,7 @@ public class scr_MainForm : MonoBehaviour
 
         Debug.Log($"JSON saved to: {path}");
 
-        _photoFileSourcePath = null;
+        //_photoFileSourcePath = null;
     }
 
     //New Card
@@ -303,7 +344,7 @@ public class scr_MainForm : MonoBehaviour
 
         V_DeleteAllRewards();
 
-        _photoFileSourcePath = null;
+        //_photoFileSourcePath = null;
         _imageURL = null;
 
     }
@@ -322,8 +363,7 @@ public class scr_MainForm : MonoBehaviour
         V_DeleteAllRewards();
         veteran.Rewards.ForEach(r => V_AddExistingReward(r.RewardName,r.YearOfReward));
 
-        _photoFileSourcePath = null;
-      
+        //_photoFileSourcePath = null;
     }
 
     //Search
