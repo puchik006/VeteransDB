@@ -14,7 +14,8 @@ public class scr_MainForm : MonoBehaviour
     [SerializeField] private TMP_InputField _txtInputFIO;
     [SerializeField] private TMP_InputField _txtInputDateOfBirth;
     [SerializeField] private TMP_InputField _txtInputDateofDeath;
-    [SerializeField] private Image _inputImage;
+    [SerializeField] private Image _imageInput;
+
     [SerializeField] private TMP_InputField _txtMainInfo;
     [SerializeField] private TMP_InputField _txtSearchField;
     [SerializeField] private TMP_InputField _txtPamyat;
@@ -92,75 +93,48 @@ public class scr_MainForm : MonoBehaviour
     //    //}
     //}
 
-
-    //public void V_AddPhoto()
-    //{
-    //    // Call the JavaScript function and pass the Unity method name as a string
-    //    Application.ExternalCall("openFilePicker", "HandleFileSelection");
-    //}
-
-    //// This method will be called from JavaScript with the base64 data
-    //public void HandleFileSelection(string base64Data)
-    //{
-    //    Debug.Log("File data received: " + base64Data);
-
-    //    if (base64Data.Contains("base64"))
-    //    {
-    //        // Extract the base64 part and convert it to bytes
-    //        byte[] fileBytes = System.Convert.FromBase64String(base64Data.Split(',')[1]);
-
-    //        // Create a Texture2D from the byte array
-    //        Texture2D texture = new Texture2D(2, 2);
-    //        if (texture.LoadImage(fileBytes))
-    //        {
-    //            // Successfully loaded image
-    //            _inputImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-    //        }
-    //        else
-    //        {
-    //            Debug.LogError("Failed to load image from file data.");
-    //        }
-
-    //        // Optionally save the image
-    //        byte[] pngData = texture.EncodeToPNG();
-    //        WebGLFileSaver.SaveFile(pngData, "uploaded_image.png", "image/png");
-    //    }
-    //    else
-    //    {
-    //        Debug.LogError("Invalid file data received.");
-    //    }
-    //}
-
     [DllImport("__Internal")]
-    private static extern void V_AddPhoto(); // This links to the V_AddPhoto JavaScript function
+    private static extern void V_AddPhoto(); // Link to JavaScript function
 
-    // Call this method from Unity to open the file picker
+     // Assign this in the Inspector
+
+    // Open the file picker
     public void OpenFilePicker()
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            V_AddPhoto(); // Call the JS function to open file picker
+        V_AddPhoto();
 #endif
     }
 
-    // This method will be called when the base64 image data is received from JavaScript
+    // Called by JavaScript when an image is selected
     public void OnImageSelected(string base64Image)
     {
-        // Process the base64 image string, e.g., display it in Unity, or save it
         Debug.Log("Image selected: " + base64Image);
 
-        // Example: convert the base64 string to a texture and apply to a material
+        // Decode the base64 string to a byte array
         byte[] imageBytes = System.Convert.FromBase64String(base64Image.Substring(base64Image.IndexOf(",") + 1));
-        Texture2D texture = new Texture2D(2, 2);
-        texture.LoadImage(imageBytes); // Load image from bytes
 
-        // Apply the texture to a material (example)
-        Renderer renderer = GetComponent<Renderer>();
-        if (renderer != null)
+        // Create a Texture2D from the image bytes
+        Texture2D texture = new Texture2D(2, 2);
+        texture.LoadImage(imageBytes);
+
+        // Convert the Texture2D to a Sprite
+        Rect rect = new Rect(0, 0, texture.width, texture.height);
+        Sprite sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f));
+
+        // Assign the Sprite to the UI Image
+        if (_imageInput != null)
         {
-            renderer.material.mainTexture = texture;
+            _imageInput.sprite = sprite;
+        }
+        else
+        {
+            Debug.LogError("_imageInput is not assigned in the Inspector.");
         }
     }
 
+    //
+    //
     //
     private void V_SavePhotoOnDisk(string fileName)
     {
@@ -325,7 +299,7 @@ public class scr_MainForm : MonoBehaviour
         _txtInputDateofDeath.text = string.Empty;
         _txtMainInfo.text = string.Empty;
 
-        _inputImage.sprite = null;
+       _imageInput.sprite = null;
 
         V_DeleteAllRewards();
 
@@ -342,7 +316,7 @@ public class scr_MainForm : MonoBehaviour
         _txtInputDateofDeath.text = veteran.DateOfDeath;
         _txtMainInfo.text = veteran.MainInfo;
 
-        _inputImage.sprite = LoadSpriteFromPath(veteran.ImageURL);
+        _imageInput.sprite = LoadSpriteFromPath(veteran.ImageURL);
         _imageURL = veteran.ImageURL;
 
         V_DeleteAllRewards();

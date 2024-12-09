@@ -5072,6 +5072,7 @@ MonoBehaviour:
   _veteranStringPrefab: {fileID: 3846564132360329406, guid: d303d1d5e248fe94c9111924c11271a7, type: 3}
   _rewardsListPlace: {fileID: 174843572}
   _veteranListPlace: {fileID: 1941667744}
+  _imageInput: {fileID: 1015442053}
 --- !u!1 &1231100560
 GameObject:
   m_ObjectHideFlags: 0
