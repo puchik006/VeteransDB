@@ -46,7 +46,9 @@ public class scr_MainForm : MonoBehaviour
 
     void Awake()
     {
-       _databasePath =  Path.Combine(Application.streamingAssetsPath, m_General.GET_DatabaseNameJSON);
+
+        //_databasePath = Path.Combine(Application.streamingAssetsPath, m_General.GET_DatabaseNameJSON);
+        _databasePath = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
 
         V_CheckStreamingAssets();
         V_ShowAllData();
