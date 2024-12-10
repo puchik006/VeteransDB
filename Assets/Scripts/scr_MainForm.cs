@@ -40,7 +40,6 @@ public class scr_MainForm : MonoBehaviour
     private List<scr_SearchString> _searchStrings = new();
 
     private string _databasePath;
-    //private string _photoFileSourcePath;
     private string _imageURL;
 
 
@@ -74,55 +73,27 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Photo
-    //private void V_AddPhoto()
-    //{
-    //    //// Open the file picker using StandaloneFileBrowser
-    //    //var extensions = new[] {
-    //    //    new ExtensionFilter("Image Files", "png", "jpg", "jpeg")
-    //    //};
-    //    //string[] paths = StandaloneFileBrowser.OpenFilePanel("Select an Image", "", extensions, false);
-
-    //    //if (paths.Length > 0 && !string.IsNullOrEmpty(paths[0]))
-    //    //{
-    //    //    _photoFileSourcePath = paths[0];
-    //    //    _inputImage.sprite = LoadSpriteFromPath(paths[0]);
-    //    //}
-    //    //else
-    //    //{
-    //    //    Debug.LogWarning("No file selected.");
-    //    //}
-    //}
-
     [DllImport("__Internal")]
-    private static extern void V_AddPhoto(); // Link to JavaScript function
+    private static extern void V_AddPhoto();
 
-     // Assign this in the Inspector
-
-    // Open the file picker
     public void OpenFilePicker()
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
         V_AddPhoto();
 #endif
     }
-
-    // Called by JavaScript when an image is selected
     public void OnImageSelected(string base64Image)
     {
         Debug.Log("Image selected: " + base64Image);
 
-        // Decode the base64 string to a byte array
         byte[] imageBytes = System.Convert.FromBase64String(base64Image.Substring(base64Image.IndexOf(",") + 1));
 
-        // Create a Texture2D from the image bytes
         Texture2D texture = new Texture2D(2, 2);
         texture.LoadImage(imageBytes);
 
-        // Convert the Texture2D to a Sprite
         Rect rect = new Rect(0, 0, texture.width, texture.height);
         Sprite sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f));
 
-        // Assign the Sprite to the UI Image
         if (_imageInput != null)
         {
             _imageInput.sprite = sprite;
@@ -133,46 +104,13 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
-    //
-    //
-    //
-    //private void V_SavePhotoOnDisk(string fileName)
-    //{
-    //    if (_photoFileSourcePath == null) return;
-
-    //    string fileExtension = Path.GetExtension(_photoFileSourcePath);
-    //    string fileNameWithExtension = fileName + fileExtension;
-    //    string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
-    //    string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
-
-    //    _imageURL = targetPath; 
-
-    //    if (!Directory.Exists(photoFolderPath))
-    //    {
-    //        Directory.CreateDirectory(photoFolderPath);  
-    //        Debug.Log($"Created folder at: {photoFolderPath}");
-    //    }
-
-    //    try
-    //    {
-    //        File.Copy(_photoFileSourcePath, targetPath, true); 
-    //        Debug.Log($"File copied to: {targetPath}");
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        Debug.LogError($"Failed to copy file: {e.Message}");
-    //    }
-    //}
-
     private void V_SavePhotoOnDisk(string fileName)
     {
         if (_imageInput == null || _imageInput.sprite == null) return;
 
-        // Get the sprite from _imageInput
         Sprite sprite = _imageInput.sprite;
         Texture2D texture = sprite.texture;
 
-        // Ensure the texture is readable (if not, copy the texture data to a new Texture2D)
         if (!texture.isReadable)
         {
             texture = new Texture2D(sprite.texture.width, sprite.texture.height, sprite.texture.format, false);
@@ -180,7 +118,6 @@ public class scr_MainForm : MonoBehaviour
             texture.Apply();
         }
 
-        // Create the folder if it doesn't exist
         string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
         if (!Directory.Exists(photoFolderPath))
         {
@@ -188,15 +125,14 @@ public class scr_MainForm : MonoBehaviour
             Debug.Log($"Created folder at: {photoFolderPath}");
         }
 
-        // Save the texture to a PNG file
         byte[] pngData = texture.EncodeToPNG();
-        string fileNameWithExtension = fileName + ".png";  // Save as PNG
+        string fileNameWithExtension = fileName + ".png";
         string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
 
         try
         {
-            File.WriteAllBytes(targetPath, pngData);  // Save PNG to disk
-            _imageURL = targetPath;  // Store the path if needed
+            File.WriteAllBytes(targetPath, pngData); 
+            _imageURL = targetPath;
             Debug.Log($"File saved to: {targetPath}");
         }
         catch (Exception e)
@@ -328,8 +264,6 @@ public class scr_MainForm : MonoBehaviour
         File.WriteAllText(path, json);
 
         Debug.Log($"JSON saved to: {path}");
-
-        //_photoFileSourcePath = null;
     }
 
     //New Card
@@ -339,14 +273,13 @@ public class scr_MainForm : MonoBehaviour
         _txtInputDateOfBirth.text = string.Empty;
         _txtInputDateofDeath.text = string.Empty;
         _txtMainInfo.text = string.Empty;
+        _txtPamyat.text = string.Empty;
 
        _imageInput.sprite = null;
 
         V_DeleteAllRewards();
 
-        //_photoFileSourcePath = null;
         _imageURL = null;
-
     }
 
     //Load data 
