@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -46,7 +47,7 @@ public class scr_MainForm : MonoBehaviour
 
     void Awake()
     {
-        //V_ShowAllData();
+        StartCoroutine(V_ShowAllData());    
 
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
@@ -146,16 +147,53 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
+    //LOAD SPRITE
+    //private Sprite LoadSpriteFromPath(string filePath)
+    //{
+    //    if (filePath == string.Empty) return null;
 
-    private Sprite LoadSpriteFromPath(string filePath)
+    //    byte[] fileData = File.ReadAllBytes(filePath);
+    //    Texture2D texture = new Texture2D(2, 2);
+    //    texture.LoadImage(fileData);
+    //    return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+    //}
+
+    private async Task<Sprite> LoadSpriteFromServer(string imageUrl)
     {
-        if (filePath == string.Empty) return null;
+        if (string.IsNullOrEmpty(imageUrl))
+        {
+            Debug.LogWarning("Image URL is empty or null.");
+            return null;
+        }
 
-        byte[] fileData = File.ReadAllBytes(filePath);
-        Texture2D texture = new Texture2D(2, 2);
-        texture.LoadImage(fileData);
-        return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+        using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(imageUrl))
+        {
+            Debug.Log("Fetching image from: " + imageUrl);
+            var operation = request.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield(); // Asynchronously wait
+            }
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                // Get the texture from the response
+                Texture2D texture = DownloadHandlerTexture.GetContent(request);
+
+                // Create a sprite from the texture
+                Rect rect = new Rect(0, 0, texture.width, texture.height);
+                return Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f));
+            }
+            else
+            {
+                Debug.LogError($"Failed to load image from server: {request.error}");
+                return null;
+            }
+        }
     }
+
+
 
     //Rewards
     private void V_AddNewReward()
@@ -199,37 +237,10 @@ public class scr_MainForm : MonoBehaviour
 
     private void V_SaveCard()
     {
-
-        //StartCoroutine(TestUnityWebRequest());
-
-        StartCoroutine(UploadAndSaveData(_txtInputFIO.text));
+        StartCoroutine(UploadPhotoAndSaveJSONData(_txtInputFIO.text));
     }
 
-
-    private IEnumerator TestUnityWebRequest()
-    {
-        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
-        Debug.Log("Starting to fetch JSON from server: " + url);
-
-        using (UnityWebRequest www = UnityWebRequest.Get(url))
-        {
-            yield return www.SendWebRequest();
-
-            // Log the actual result of the request
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
-            }
-            else
-            {
-                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
-                Debug.LogError("Full response: " + www.downloadHandler.text);  // Log the full server response
-            }
-        }
-    }
-
-
-    private IEnumerator UploadAndSaveData(string fileName)
+    private IEnumerator UploadPhotoAndSaveJSONData(string fileName)
     {
         // Step 1: Upload the photo
         yield return StartCoroutine(UploadPhotoToServer(fileName));
@@ -239,7 +250,7 @@ public class scr_MainForm : MonoBehaviour
 
         StartCoroutine(V_SaveDataToJSON());
 
-       // V_Search();
+        StartCoroutine(V_Search());
     }
 
     private IEnumerator UploadJSONToServer(string jsonData)
@@ -451,45 +462,80 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Load data 
-    public void V_LoadCardFromJSON(Dm_JSON veteran)
+    public async void V_LoadCardFromJSON(Dm_JSON veteran)
     {
         _txtInputFIO.text = veteran.FullName;
         _txtInputDateOfBirth.text = veteran.DateOfBitrh;
         _txtInputDateOfDeath.text = veteran.DateOfDeath;
         _txtMainInfo.text = veteran.MainInfo;
 
-        _imageInput.sprite = LoadSpriteFromPath(veteran.ImageURL);
+        _imageInput.sprite = await LoadSpriteFromServer(veteran.ImageURL);//  LoadSpriteFromPath(veteran.ImageURL);
         _imageURL = veteran.ImageURL;
 
         V_DeleteAllRewards();
         veteran.Rewards.ForEach(r => V_AddExistingReward(r.RewardName,r.YearOfReward));
-
-        //_photoFileSourcePath = null;
     }
 
     //Search
-    private void V_ShowAllData()
+    //private void V_ShowAllData()
+    //{
+    //    string path = _databasePath;
+
+    //    if (File.Exists(path))
+    //    {
+    //        string json = File.ReadAllText(path);
+    //        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
+
+    //        foreach (var veteran in jsonData.Veterans)
+    //        {
+    //            scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
+    //            veteranPrefab.V_INITIALIZE(this, veteran);
+
+    //            _searchStrings.Add(veteranPrefab);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        Debug.LogWarning("Veterans.json file not found in StreamingAssets.");
+    //    }
+    //}
+
+    private IEnumerator V_ShowAllData()
     {
-        string path = _databasePath;
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        Debug.Log("Fetching data from server for ShowAllData.");
 
-        if (File.Exists(path))
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
         {
-            string json = File.ReadAllText(path);
-            D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
+            yield return www.SendWebRequest();
 
-            foreach (var veteran in jsonData.Veterans)
+            if (www.result == UnityWebRequest.Result.Success)
             {
-                scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
-                veteranPrefab.V_INITIALIZE(this, veteran);
+                string json = www.downloadHandler.text;
+                D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
 
-                _searchStrings.Add(veteranPrefab);
+                if (jsonData.Veterans != null)
+                {
+                    foreach (var veteran in jsonData.Veterans)
+                    {
+                        scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
+                        veteranPrefab.V_INITIALIZE(this, veteran);
+
+                        _searchStrings.Add(veteranPrefab);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("No data or invalid JSON structure.");
+                }
+            }
+            else
+            {
+                Debug.LogError($"Failed to fetch data: {www.error}");
             }
         }
-        else
-        {
-            Debug.LogWarning("Veterans.json file not found in StreamingAssets.");
-        }
     }
+
 
     private void V_DeleteSearchList()
     {
@@ -500,38 +546,88 @@ public class scr_MainForm : MonoBehaviour
        _searchStrings.Clear();
     }
 
-    private void V_Search()
+    //private void V_Search()
+    //{
+    //    string searchTerm = _txtSearchField.text.ToLower();
+
+    //    V_DeleteSearchList();
+
+    //    if (_txtSearchField.text == string.Empty) 
+    //    {
+    //        V_ShowAllData();
+    //    }
+    //    else 
+    //    {
+    //        string path = _databasePath;
+
+    //        if (File.Exists(path))
+    //        {
+    //            string json = File.ReadAllText(path);
+    //            D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
+
+    //            foreach (var veteran in jsonData.Veterans)
+    //            {
+    //                if (veteran.FullName.ToLower().Contains(searchTerm))
+    //                {
+    //                    scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
+    //                    veteranPrefab.V_INITIALIZE(this, veteran);
+
+    //                    _searchStrings.Add(veteranPrefab);
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+
+    private IEnumerator V_Search()
     {
         string searchTerm = _txtSearchField.text.ToLower();
 
         V_DeleteSearchList();
 
-        if (_txtSearchField.text == string.Empty) 
+        if (string.IsNullOrEmpty(searchTerm))
         {
-            V_ShowAllData();
+            yield return StartCoroutine(V_ShowAllData());
+            yield break;
         }
-        else 
-        {
-            string path = _databasePath;
 
-            if (File.Exists(path))
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        Debug.Log("Fetching data from server for Search.");
+
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
             {
-                string json = File.ReadAllText(path);
+                string json = www.downloadHandler.text;
                 D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
 
-                foreach (var veteran in jsonData.Veterans)
+                if (jsonData.Veterans != null)
                 {
-                    if (veteran.FullName.ToLower().Contains(searchTerm))
+                    foreach (var veteran in jsonData.Veterans)
                     {
-                        scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
-                        veteranPrefab.V_INITIALIZE(this, veteran);
+                        if (veteran.FullName.ToLower().Contains(searchTerm))
+                        {
+                            scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
+                            veteranPrefab.V_INITIALIZE(this, veteran);
 
-                        _searchStrings.Add(veteranPrefab);
+                            _searchStrings.Add(veteranPrefab);
+                        }
                     }
                 }
+                else
+                {
+                    Debug.LogWarning("No data or invalid JSON structure.");
+                }
+            }
+            else
+            {
+                Debug.LogError($"Failed to fetch data: {www.error}");
             }
         }
     }
+
 
     //Check Pamyat Naroda
     public void V_CheckPamyatNaroda()
