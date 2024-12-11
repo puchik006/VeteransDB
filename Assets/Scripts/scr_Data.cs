@@ -13,6 +13,7 @@ public struct D_JSON
 [Serializable]
 public struct Dm_JSON
 {
+    public string GUID;
     public string FullName;
     public string ImageURL;
     public string DateOfBitrh;

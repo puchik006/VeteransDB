@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using TMPro;
@@ -37,23 +36,31 @@ public class scr_MainForm : MonoBehaviour
     [SerializeField] private GameObject _rewardsListPlace;
     [SerializeField] private GameObject _veteranListPlace;
 
+    [Header("Info panel")]
+    [SerializeField] private GameObject _infoPanel;
+    [SerializeField] private TMP_Text _infoText;
+
     private List<scr_RewardString> _rewardStrings = new();
     private List<scr_SearchString> _searchStrings = new();
 
     private string _databasePath;
     //private string _photoFileSourcePath;
     private string _imageURL;
+    private string _currentGUID;
 
 
     void Awake()
     {
+        _currentGUID = Guid.NewGuid().ToString();
+       // V_NewCard();
+
         StartCoroutine(V_ShowAllData());    
 
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
         _btnSaveCard.onClick.AddListener(() => V_SaveCard());
         _btnAddCard.onClick.AddListener(() => V_NewCard());
-        _btnSearch.onClick.AddListener(() => V_Search());
+        _btnSearch.onClick.AddListener(() => StartCoroutine(V_Search()));
         _btnCheckPamyat.onClick.AddListener(() => V_CheckPamyatNaroda());
         
     }
@@ -148,16 +155,6 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //LOAD SPRITE
-    //private Sprite LoadSpriteFromPath(string filePath)
-    //{
-    //    if (filePath == string.Empty) return null;
-
-    //    byte[] fileData = File.ReadAllBytes(filePath);
-    //    Texture2D texture = new Texture2D(2, 2);
-    //    texture.LoadImage(fileData);
-    //    return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-    //}
-
     private async Task<Sprite> LoadSpriteFromServer(string imageUrl)
     {
         if (string.IsNullOrEmpty(imageUrl))
@@ -193,8 +190,6 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
-
-
     //Rewards
     private void V_AddNewReward()
     {
@@ -228,16 +223,9 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Save
-    //private void V_SaveCard()
-    //{
-    //    V_SavePhotoOnDisk(_txtInputFIO.text);
-    //    V_SaveDataToJSON();
-    //    V_Search();
-    //}
-
     private void V_SaveCard()
     {
-        StartCoroutine(UploadPhotoAndSaveJSONData(_txtInputFIO.text));
+        StartCoroutine(UploadPhotoAndSaveJSONData(_currentGUID));
     }
 
     private IEnumerator UploadPhotoAndSaveJSONData(string fileName)
@@ -248,31 +236,12 @@ public class scr_MainForm : MonoBehaviour
         // Step 2: Save the JSON data
         Debug.Log("Starting JSON save process...");
 
-        StartCoroutine(V_SaveDataToJSON());
+        yield return StartCoroutine(V_SaveDataToJSON());
 
-        StartCoroutine(V_Search());
+        yield return StartCoroutine(V_Search());
     }
 
-    private IEnumerator UploadJSONToServer(string jsonData)
-    {
-        // Prepare the form for the HTTP POST request
-        WWWForm form = new WWWForm();
-        form.AddField("JS", jsonData);  // Send the JSON data to the PHP script
 
-        using (UnityWebRequest www = UnityWebRequest.Post("https://vm-86bbe67b.na4u.ru/ww2/save.php", form)) // Make sure the URL is correct
-        {
-            yield return www.SendWebRequest();
-
-            if (www.result != UnityWebRequest.Result.Success)
-            {
-                Debug.LogError("Error uploading data: " + www.error);
-            }
-            else
-            {
-                Debug.Log("Data uploaded successfully.");
-            }
-        }
-    }
 
     private IEnumerator V_SaveDataToJSON()
     {
@@ -297,23 +266,28 @@ public class scr_MainForm : MonoBehaviour
                 Debug.LogError("Full response: " + www.downloadHandler.text);  // Log the full response
             }
         }
-
+        //
         // Step 2: Parse the existing JSON data into the D_JSON object
-        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
+        D_JSON jsonData;
+
+        jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
 
         // Step 3: Ensure the Veterans list is initialized
         if (jsonData.Veterans == null)
         {
             Debug.LogWarning("Invalid or empty JSON. Initializing new structure.");
-            jsonData = new D_JSON { Veterans = new List<Dm_JSON>() };
+            jsonData = new D_JSON { Veterans = new List<Dm_JSON>() }; // Initialize list if null
         }
 
-        // Step 4: Update or add a new veteran
-        int existingIndex = jsonData.Veterans.FindIndex(v => v.FullName == _txtInputFIO.text);
+        // Step 4: Search for an existing veteran by GUID or add a new one
+        int existingIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
+
         if (existingIndex != -1)
         {
             // Update existing veteran
             var existingVeteran = jsonData.Veterans[existingIndex];
+            existingVeteran.GUID = _currentGUID;
+            existingVeteran.FullName = _txtInputFIO.text;
             existingVeteran.ImageURL = _imageURL;
             existingVeteran.DateOfBitrh = _txtInputDateOfBirth.text;
             existingVeteran.DateOfDeath = _txtInputDateOfDeath.text;
@@ -333,9 +307,15 @@ public class scr_MainForm : MonoBehaviour
         }
         else
         {
+            if (_currentGUID == string.Empty)
+            {
+                _currentGUID = Guid.NewGuid().ToString(); // Generate a new GUID for this veteran
+            }
+
             // Add new veteran
             Dm_JSON newVeteran = new Dm_JSON
             {
+                GUID = _currentGUID,
                 FullName = _txtInputFIO.text,
                 ImageURL = _imageURL,
                 DateOfBitrh = _txtInputDateOfBirth.text,
@@ -363,113 +343,62 @@ public class scr_MainForm : MonoBehaviour
         yield return StartCoroutine(UploadJSONToServer(updatedJson));
 
         Debug.Log("JSON data updated and uploaded.");
+
+        //_currentGUID = string.Empty;
+
+        V_NewCard();
     }
 
+    private IEnumerator UploadJSONToServer(string jsonData)
+    {
+        // Prepare the form for the HTTP POST request
+        WWWForm form = new WWWForm();
+        form.AddField("JS", jsonData);  // Send the JSON data to the PHP script
 
+        using (UnityWebRequest www = UnityWebRequest.Post("https://vm-86bbe67b.na4u.ru/ww2/save.php", form)) // Make sure the URL is correct
+        {
+            yield return www.SendWebRequest();
 
-
-    //private void V_SaveDataToJSON()
-    //{
-    //    string path = _databasePath;
-
-    //    D_JSON jsonData;
-
-    //    if (File.Exists(path))
-    //    {
-    //        string existingJson = File.ReadAllText(path);
-    //        jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
-    //    }
-    //    else
-    //    {
-    //        jsonData = new D_JSON
-    //        {
-    //            Veterans = new List<Dm_JSON>()
-    //        };
-    //    }
-
-    //    // Check if the veteran already exists
-    //    int existingIndex = jsonData.Veterans.FindIndex(v => v.FullName == _txtInputFIO.text);
-
-    //    if (existingIndex != -1)
-    //    {
-    //        // Update the existing veteran
-    //        var existingVeteran = jsonData.Veterans[existingIndex];
-    //        existingVeteran.ImageURL = _imageURL;
-    //        existingVeteran.DateOfBitrh = _txtInputDateOfBirth.text;
-    //        existingVeteran.DateOfDeath = _txtInputDateofDeath.text;
-    //        existingVeteran.MainInfo = _txtMainInfo.text;
-    //        existingVeteran.Rewards = new List<Dmm_JSON>();
-
-    //        foreach (var reward in _rewardStrings)
-    //        {
-    //            existingVeteran.Rewards.Add(new Dmm_JSON
-    //            {
-    //                RewardName = reward.RewardName.text,
-    //                YearOfReward = reward.RewardYear.text
-    //            });
-    //        }
-
-    //        jsonData.Veterans[existingIndex] = existingVeteran; // Update the list
-    //    }
-    //    else
-    //    {
-    //        // Add a new veteran
-    //        Dm_JSON newVeteran = new Dm_JSON
-    //        {
-    //            FullName = _txtInputFIO.text,
-    //            ImageURL = _imageURL,
-    //            DateOfBitrh = _txtInputDateOfBirth.text,
-    //            DateOfDeath = _txtInputDateofDeath.text,
-    //            MainInfo = _txtMainInfo.text,
-    //            Rewards = new List<Dmm_JSON>()
-    //        };
-
-    //        foreach (var reward in _rewardStrings)
-    //        {
-    //            newVeteran.Rewards.Add(new Dmm_JSON
-    //            {
-    //                RewardName = reward.RewardName.text,
-    //                YearOfReward = reward.RewardYear.text
-    //            });
-    //        }
-
-    //        jsonData.Veterans.Add(newVeteran);
-    //    }
-
-    //    string json = JsonUtility.ToJson(jsonData, true);
-    //    File.WriteAllText(path, json);
-
-    //    Debug.Log($"JSON saved to: {path}");
-
-    //    //_photoFileSourcePath = null;
-    //}
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error uploading data: " + www.error);
+            }
+            else
+            {
+                Debug.Log("Data uploaded successfully.");
+            }
+        }
+    }
 
     //New Card
     private void V_NewCard()
     {
+        _currentGUID = Guid.NewGuid().ToString();
+
         _txtInputFIO.text = string.Empty;
         _txtInputDateOfBirth.text = string.Empty;
         _txtInputDateOfDeath.text = string.Empty;
         _txtMainInfo.text = string.Empty;
+        _txtPamyat.text = string.Empty;
 
        _imageInput.sprite = null;
 
         V_DeleteAllRewards();
 
-        //_photoFileSourcePath = null;
         _imageURL = null;
-
     }
 
     //Load data 
     public async void V_LoadCardFromJSON(Dm_JSON veteran)
     {
+        _currentGUID = veteran.GUID;
+
         _txtInputFIO.text = veteran.FullName;
         _txtInputDateOfBirth.text = veteran.DateOfBitrh;
         _txtInputDateOfDeath.text = veteran.DateOfDeath;
         _txtMainInfo.text = veteran.MainInfo;
 
-        _imageInput.sprite = await LoadSpriteFromServer(veteran.ImageURL);//  LoadSpriteFromPath(veteran.ImageURL);
+        _imageInput.sprite = await LoadSpriteFromServer(veteran.ImageURL);
         _imageURL = veteran.ImageURL;
 
         V_DeleteAllRewards();
@@ -477,28 +406,14 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Search
-    //private void V_ShowAllData()
-    //{
-    //    string path = _databasePath;
-
-    //    if (File.Exists(path))
-    //    {
-    //        string json = File.ReadAllText(path);
-    //        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
-
-    //        foreach (var veteran in jsonData.Veterans)
-    //        {
-    //            scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
-    //            veteranPrefab.V_INITIALIZE(this, veteran);
-
-    //            _searchStrings.Add(veteranPrefab);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        Debug.LogWarning("Veterans.json file not found in StreamingAssets.");
-    //    }
-    //}
+    private void V_DeleteSearchList()
+    {
+        foreach (var searchString in _searchStrings)
+        {
+            Destroy(searchString.gameObject);
+        }
+        _searchStrings.Clear();
+    }
 
     private IEnumerator V_ShowAllData()
     {
@@ -535,49 +450,6 @@ public class scr_MainForm : MonoBehaviour
             }
         }
     }
-
-
-    private void V_DeleteSearchList()
-    {
-        foreach (var searchString in _searchStrings)
-        {
-            Destroy(searchString.gameObject);
-        }
-       _searchStrings.Clear();
-    }
-
-    //private void V_Search()
-    //{
-    //    string searchTerm = _txtSearchField.text.ToLower();
-
-    //    V_DeleteSearchList();
-
-    //    if (_txtSearchField.text == string.Empty) 
-    //    {
-    //        V_ShowAllData();
-    //    }
-    //    else 
-    //    {
-    //        string path = _databasePath;
-
-    //        if (File.Exists(path))
-    //        {
-    //            string json = File.ReadAllText(path);
-    //            D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
-
-    //            foreach (var veteran in jsonData.Veterans)
-    //            {
-    //                if (veteran.FullName.ToLower().Contains(searchTerm))
-    //                {
-    //                    scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
-    //                    veteranPrefab.V_INITIALIZE(this, veteran);
-
-    //                    _searchStrings.Add(veteranPrefab);
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
 
     private IEnumerator V_Search()
     {
