@@ -1,0 +1,30 @@
+{
+    "Veterans": [
+        {
+            "FullName": "Иванов Петр Ивнович",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\Photo\\Иванов Петр Ивнович.png",
+            "DateOfBitrh": "ывафыва",
+            "DateOfDeath": "фывафыва",
+            "MainInfo": "ываыва ыва ыва ыыва ываы ",
+            "Rewards": [
+                {
+                    "RewardName": "ываыа",
+                    "YearOfReward": "23"
+                }
+            ]
+        },
+        {
+            "FullName": "Сергеев Виктор Иванович",
+            "ImageURL": "D:/Unity projects/VeteransDB/Assets/StreamingAssets\\Photo\\Сергеев Виктор Иванович.png",
+            "DateOfBitrh": "фывфыв",
+            "DateOfDeath": "фывфыв",
+            "MainInfo": "цйв йц фвыа фыва уацуа ывм ",
+            "Rewards": [
+                {
+                    "RewardName": "йцуйцу",
+                    "YearOfReward": "223"
+                }
+            ]
+        }
+    ]
+}

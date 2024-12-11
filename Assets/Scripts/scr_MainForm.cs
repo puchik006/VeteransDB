@@ -13,7 +13,7 @@ public class scr_MainForm : MonoBehaviour
     [Header("Fields")]
     [SerializeField] private TMP_InputField _txtInputFIO;
     [SerializeField] private TMP_InputField _txtInputDateOfBirth;
-    [SerializeField] private TMP_InputField _txtInputDateofDeath;
+    [SerializeField] private TMP_InputField _txtInputDateOfDeath;
     [SerializeField] private Image _imageInput;
 
     [SerializeField] private TMP_InputField _txtMainInfo;
@@ -48,9 +48,9 @@ public class scr_MainForm : MonoBehaviour
     {
 
         //_databasePath = Path.Combine(Application.streamingAssetsPath, m_General.GET_DatabaseNameJSON);
-        _databasePath = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
+       // _databasePath = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
 
-        V_CheckStreamingAssets();
+       // V_CheckStreamingAssets();
         V_ShowAllData();
 
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
@@ -63,15 +63,15 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Streaming assets
-    private void V_CheckStreamingAssets()
-    {
-        string streamingAssetsPath = Application.streamingAssetsPath;
+    //private void V_CheckStreamingAssets()
+    //{
+    //    string streamingAssetsPath = Application.streamingAssetsPath;
 
-        if (!Directory.Exists(streamingAssetsPath))
-        {
-            Directory.CreateDirectory(streamingAssetsPath);
-        }
-    }
+    //    if (!Directory.Exists(streamingAssetsPath))
+    //    {
+    //        Directory.CreateDirectory(streamingAssetsPath);
+    //    }
+    //}
 
     //Photo
     //private void V_AddPhoto()
@@ -166,13 +166,56 @@ public class scr_MainForm : MonoBehaviour
 
     private void V_SavePhotoOnDisk(string fileName)
     {
-        if (_imageInput == null || _imageInput.sprite == null) return;
 
-        // Get the sprite from _imageInput
+        StartCoroutine(UploadPhotoToServer(fileName));
+
+        //if (_imageInput == null || _imageInput.sprite == null) return;
+
+        //// Get the sprite from _imageInput
+        //Sprite sprite = _imageInput.sprite;
+        //Texture2D texture = sprite.texture;
+
+        //// Ensure the texture is readable (if not, copy the texture data to a new Texture2D)
+        //if (!texture.isReadable)
+        //{
+        //    texture = new Texture2D(sprite.texture.width, sprite.texture.height, sprite.texture.format, false);
+        //    texture.SetPixels(sprite.texture.GetPixels());
+        //    texture.Apply();
+        //}
+
+        //// Create the folder if it doesn't exist
+        //string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
+        //if (!Directory.Exists(photoFolderPath))
+        //{
+        //    Directory.CreateDirectory(photoFolderPath);
+        //    Debug.Log($"Created folder at: {photoFolderPath}");
+        //}
+
+        //// Save the texture to a PNG file
+        //byte[] pngData = texture.EncodeToPNG();
+        //string fileNameWithExtension = fileName + ".png";  // Save as PNG
+        //string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
+
+        //try
+        //{
+        //    File.WriteAllBytes(targetPath, pngData);  // Save PNG to disk
+        //    _imageURL = targetPath;  // Store the path if needed
+        //    Debug.Log($"File saved to: {targetPath}");
+        //}
+        //catch (Exception e)
+        //{
+        //    Debug.LogError($"Failed to save image: {e.Message}");
+        //}
+    }
+
+    private IEnumerator UploadPhotoToServer(string fileName)
+    {
+        if (_imageInput == null || _imageInput.sprite == null) yield break;
+
         Sprite sprite = _imageInput.sprite;
         Texture2D texture = sprite.texture;
 
-        // Ensure the texture is readable (if not, copy the texture data to a new Texture2D)
+        // Ensure the texture is readable
         if (!texture.isReadable)
         {
             texture = new Texture2D(sprite.texture.width, sprite.texture.height, sprite.texture.format, false);
@@ -180,28 +223,32 @@ public class scr_MainForm : MonoBehaviour
             texture.Apply();
         }
 
-        // Create the folder if it doesn't exist
-        string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
-        if (!Directory.Exists(photoFolderPath))
-        {
-            Directory.CreateDirectory(photoFolderPath);
-            Debug.Log($"Created folder at: {photoFolderPath}");
-        }
-
-        // Save the texture to a PNG file
+        // Convert the texture to PNG
         byte[] pngData = texture.EncodeToPNG();
-        string fileNameWithExtension = fileName + ".png";  // Save as PNG
-        string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
-
-        try
+        if (pngData == null)
         {
-            File.WriteAllBytes(targetPath, pngData);  // Save PNG to disk
-            _imageURL = targetPath;  // Store the path if needed
-            Debug.Log($"File saved to: {targetPath}");
+            Debug.LogError("Failed to encode texture to PNG.");
+            yield break;
         }
-        catch (Exception e)
+
+        // Prepare the form for the HTTP POST request
+        WWWForm form = new WWWForm();
+        form.AddField("fileName", fileName);
+        form.AddBinaryData("file", pngData, fileName + ".png", "image/png");
+
+        using (UnityWebRequest www = UnityWebRequest.Post("https://vm-86bbe67b.na4u.ru/ww2/loadimg.php", form))
         {
-            Debug.LogError($"Failed to save image: {e.Message}");
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error uploading photo: " + www.error);
+            }
+            else
+            {
+                Debug.Log("Photo uploaded successfully.");
+                _imageURL = "https://vm-86bbe67b.na4u.ru/ww2/img/" + fileName + ".png"; 
+            }
         }
     }
 
@@ -256,35 +303,54 @@ public class scr_MainForm : MonoBehaviour
         V_Search();
     }
 
+    private IEnumerator UploadJSONToServer(string jsonData)
+    {
+        // Prepare the form for the HTTP POST request
+        WWWForm form = new WWWForm();
+        form.AddField("JS", jsonData);  // Send the JSON data to the PHP script
+
+        using (UnityWebRequest www = UnityWebRequest.Post("https://vm-86bbe67b.na4u.ru/ww2/save.php", form)) // Make sure the URL is correct
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error uploading data: " + www.error);
+            }
+            else
+            {
+                Debug.Log("Data uploaded successfully.");
+            }
+        }
+    }
+
     private void V_SaveDataToJSON()
     {
-        string path = _databasePath;
-
         D_JSON jsonData;
+
+        // Prepare to load or create the JSON data
+        jsonData = new D_JSON
+        {
+            Veterans = new List<Dm_JSON>()
+        };
+
+        // Check if we are loading the existing JSON or creating new
+        string path = "https://vm-86bbe67b.na4u.ru/ww2/img/data.json"; // Use a local path only for debugging, this will be sent to the server instead
 
         if (File.Exists(path))
         {
             string existingJson = File.ReadAllText(path);
             jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
         }
-        else
-        {
-            jsonData = new D_JSON
-            {
-                Veterans = new List<Dm_JSON>()
-            };
-        }
 
-        // Check if the veteran already exists
+        // Update or add a new veteran
         int existingIndex = jsonData.Veterans.FindIndex(v => v.FullName == _txtInputFIO.text);
-
         if (existingIndex != -1)
         {
-            // Update the existing veteran
             var existingVeteran = jsonData.Veterans[existingIndex];
             existingVeteran.ImageURL = _imageURL;
             existingVeteran.DateOfBitrh = _txtInputDateOfBirth.text;
-            existingVeteran.DateOfDeath = _txtInputDateofDeath.text;
+            existingVeteran.DateOfDeath = _txtInputDateOfDeath.text;
             existingVeteran.MainInfo = _txtMainInfo.text;
             existingVeteran.Rewards = new List<Dmm_JSON>();
 
@@ -297,17 +363,16 @@ public class scr_MainForm : MonoBehaviour
                 });
             }
 
-            jsonData.Veterans[existingIndex] = existingVeteran; // Update the list
+            jsonData.Veterans[existingIndex] = existingVeteran;  // Update the veteran in the list
         }
         else
         {
-            // Add a new veteran
             Dm_JSON newVeteran = new Dm_JSON
             {
                 FullName = _txtInputFIO.text,
                 ImageURL = _imageURL,
                 DateOfBitrh = _txtInputDateOfBirth.text,
-                DateOfDeath = _txtInputDateofDeath.text,
+                DateOfDeath = _txtInputDateOfDeath.text,
                 MainInfo = _txtMainInfo.text,
                 Rewards = new List<Dmm_JSON>()
             };
@@ -324,20 +389,98 @@ public class scr_MainForm : MonoBehaviour
             jsonData.Veterans.Add(newVeteran);
         }
 
+        // Convert to JSON string
         string json = JsonUtility.ToJson(jsonData, true);
-        File.WriteAllText(path, json);
 
-        Debug.Log($"JSON saved to: {path}");
+        // Upload the JSON data to the server
+        StartCoroutine(UploadJSONToServer(json));
 
-        //_photoFileSourcePath = null;
+        Debug.Log("JSON data prepared for upload.");
     }
+
+
+    //private void V_SaveDataToJSON()
+    //{
+    //    string path = _databasePath;
+
+    //    D_JSON jsonData;
+
+    //    if (File.Exists(path))
+    //    {
+    //        string existingJson = File.ReadAllText(path);
+    //        jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
+    //    }
+    //    else
+    //    {
+    //        jsonData = new D_JSON
+    //        {
+    //            Veterans = new List<Dm_JSON>()
+    //        };
+    //    }
+
+    //    // Check if the veteran already exists
+    //    int existingIndex = jsonData.Veterans.FindIndex(v => v.FullName == _txtInputFIO.text);
+
+    //    if (existingIndex != -1)
+    //    {
+    //        // Update the existing veteran
+    //        var existingVeteran = jsonData.Veterans[existingIndex];
+    //        existingVeteran.ImageURL = _imageURL;
+    //        existingVeteran.DateOfBitrh = _txtInputDateOfBirth.text;
+    //        existingVeteran.DateOfDeath = _txtInputDateofDeath.text;
+    //        existingVeteran.MainInfo = _txtMainInfo.text;
+    //        existingVeteran.Rewards = new List<Dmm_JSON>();
+
+    //        foreach (var reward in _rewardStrings)
+    //        {
+    //            existingVeteran.Rewards.Add(new Dmm_JSON
+    //            {
+    //                RewardName = reward.RewardName.text,
+    //                YearOfReward = reward.RewardYear.text
+    //            });
+    //        }
+
+    //        jsonData.Veterans[existingIndex] = existingVeteran; // Update the list
+    //    }
+    //    else
+    //    {
+    //        // Add a new veteran
+    //        Dm_JSON newVeteran = new Dm_JSON
+    //        {
+    //            FullName = _txtInputFIO.text,
+    //            ImageURL = _imageURL,
+    //            DateOfBitrh = _txtInputDateOfBirth.text,
+    //            DateOfDeath = _txtInputDateofDeath.text,
+    //            MainInfo = _txtMainInfo.text,
+    //            Rewards = new List<Dmm_JSON>()
+    //        };
+
+    //        foreach (var reward in _rewardStrings)
+    //        {
+    //            newVeteran.Rewards.Add(new Dmm_JSON
+    //            {
+    //                RewardName = reward.RewardName.text,
+    //                YearOfReward = reward.RewardYear.text
+    //            });
+    //        }
+
+    //        jsonData.Veterans.Add(newVeteran);
+    //    }
+
+    //    string json = JsonUtility.ToJson(jsonData, true);
+    //    File.WriteAllText(path, json);
+
+    //    Debug.Log($"JSON saved to: {path}");
+
+    //    //_photoFileSourcePath = null;
+    //}
 
     //New Card
     private void V_NewCard()
     {
         _txtInputFIO.text = string.Empty;
         _txtInputDateOfBirth.text = string.Empty;
-        _txtInputDateofDeath.text = string.Empty;
+        _txtInputDateOfDeath.text = string.Empty;
         _txtMainInfo.text = string.Empty;
 
        _imageInput.sprite = null;
@@ -354,7 +497,7 @@ public class scr_MainForm : MonoBehaviour
     {
         _txtInputFIO.text = veteran.FullName;
         _txtInputDateOfBirth.text = veteran.DateOfBitrh;
-        _txtInputDateofDeath.text = veteran.DateOfDeath;
+        _txtInputDateOfDeath.text = veteran.DateOfDeath;
         _txtMainInfo.text = veteran.MainInfo;
 
         _imageInput.sprite = LoadSpriteFromPath(veteran.ImageURL);
