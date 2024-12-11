@@ -46,12 +46,7 @@ public class scr_MainForm : MonoBehaviour
 
     void Awake()
     {
-
-        //_databasePath = Path.Combine(Application.streamingAssetsPath, m_General.GET_DatabaseNameJSON);
-       // _databasePath = Path.Combine(Application.streamingAssetsPath, "Veterans.json");
-
-       // V_CheckStreamingAssets();
-        V_ShowAllData();
+        //V_ShowAllData();
 
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
@@ -61,37 +56,6 @@ public class scr_MainForm : MonoBehaviour
         _btnCheckPamyat.onClick.AddListener(() => V_CheckPamyatNaroda());
         
     }
-
-    //Streaming assets
-    //private void V_CheckStreamingAssets()
-    //{
-    //    string streamingAssetsPath = Application.streamingAssetsPath;
-
-    //    if (!Directory.Exists(streamingAssetsPath))
-    //    {
-    //        Directory.CreateDirectory(streamingAssetsPath);
-    //    }
-    //}
-
-    //Photo
-    //private void V_AddPhoto()
-    //{
-    //    //// Open the file picker using StandaloneFileBrowser
-    //    //var extensions = new[] {
-    //    //    new ExtensionFilter("Image Files", "png", "jpg", "jpeg")
-    //    //};
-    //    //string[] paths = StandaloneFileBrowser.OpenFilePanel("Select an Image", "", extensions, false);
-
-    //    //if (paths.Length > 0 && !string.IsNullOrEmpty(paths[0]))
-    //    //{
-    //    //    _photoFileSourcePath = paths[0];
-    //    //    _inputImage.sprite = LoadSpriteFromPath(paths[0]);
-    //    //}
-    //    //else
-    //    //{
-    //    //    Debug.LogWarning("No file selected.");
-    //    //}
-    //}
 
     [DllImport("__Internal")]
     private static extern void V_AddPhoto(); // Link to JavaScript function
@@ -133,79 +97,9 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
-    //
-    //
-    //
-    //private void V_SavePhotoOnDisk(string fileName)
-    //{
-    //    if (_photoFileSourcePath == null) return;
-
-    //    string fileExtension = Path.GetExtension(_photoFileSourcePath);
-    //    string fileNameWithExtension = fileName + fileExtension;
-    //    string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
-    //    string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
-
-    //    _imageURL = targetPath; 
-
-    //    if (!Directory.Exists(photoFolderPath))
-    //    {
-    //        Directory.CreateDirectory(photoFolderPath);  
-    //        Debug.Log($"Created folder at: {photoFolderPath}");
-    //    }
-
-    //    try
-    //    {
-    //        File.Copy(_photoFileSourcePath, targetPath, true); 
-    //        Debug.Log($"File copied to: {targetPath}");
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        Debug.LogError($"Failed to copy file: {e.Message}");
-    //    }
-    //}
-
     private void V_SavePhotoOnDisk(string fileName)
     {
-
         StartCoroutine(UploadPhotoToServer(fileName));
-
-        //if (_imageInput == null || _imageInput.sprite == null) return;
-
-        //// Get the sprite from _imageInput
-        //Sprite sprite = _imageInput.sprite;
-        //Texture2D texture = sprite.texture;
-
-        //// Ensure the texture is readable (if not, copy the texture data to a new Texture2D)
-        //if (!texture.isReadable)
-        //{
-        //    texture = new Texture2D(sprite.texture.width, sprite.texture.height, sprite.texture.format, false);
-        //    texture.SetPixels(sprite.texture.GetPixels());
-        //    texture.Apply();
-        //}
-
-        //// Create the folder if it doesn't exist
-        //string photoFolderPath = Path.Combine(Application.streamingAssetsPath, "Photo");
-        //if (!Directory.Exists(photoFolderPath))
-        //{
-        //    Directory.CreateDirectory(photoFolderPath);
-        //    Debug.Log($"Created folder at: {photoFolderPath}");
-        //}
-
-        //// Save the texture to a PNG file
-        //byte[] pngData = texture.EncodeToPNG();
-        //string fileNameWithExtension = fileName + ".png";  // Save as PNG
-        //string targetPath = Path.Combine(photoFolderPath, fileNameWithExtension);
-
-        //try
-        //{
-        //    File.WriteAllBytes(targetPath, pngData);  // Save PNG to disk
-        //    _imageURL = targetPath;  // Store the path if needed
-        //    Debug.Log($"File saved to: {targetPath}");
-        //}
-        //catch (Exception e)
-        //{
-        //    Debug.LogError($"Failed to save image: {e.Message}");
-        //}
     }
 
     private IEnumerator UploadPhotoToServer(string fileName)
@@ -296,11 +190,56 @@ public class scr_MainForm : MonoBehaviour
     }
 
     //Save
+    //private void V_SaveCard()
+    //{
+    //    V_SavePhotoOnDisk(_txtInputFIO.text);
+    //    V_SaveDataToJSON();
+    //    V_Search();
+    //}
+
     private void V_SaveCard()
     {
-        V_SavePhotoOnDisk(_txtInputFIO.text);
-        V_SaveDataToJSON();
-        V_Search();
+
+        //StartCoroutine(TestUnityWebRequest());
+
+        StartCoroutine(UploadAndSaveData(_txtInputFIO.text));
+    }
+
+
+    private IEnumerator TestUnityWebRequest()
+    {
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        Debug.Log("Starting to fetch JSON from server: " + url);
+
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        {
+            yield return www.SendWebRequest();
+
+            // Log the actual result of the request
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
+            }
+            else
+            {
+                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
+                Debug.LogError("Full response: " + www.downloadHandler.text);  // Log the full server response
+            }
+        }
+    }
+
+
+    private IEnumerator UploadAndSaveData(string fileName)
+    {
+        // Step 1: Upload the photo
+        yield return StartCoroutine(UploadPhotoToServer(fileName));
+
+        // Step 2: Save the JSON data
+        Debug.Log("Starting JSON save process...");
+
+        StartCoroutine(V_SaveDataToJSON());
+
+       // V_Search();
     }
 
     private IEnumerator UploadJSONToServer(string jsonData)
@@ -324,29 +263,45 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
-    private void V_SaveDataToJSON()
+    private IEnumerator V_SaveDataToJSON()
     {
-        D_JSON jsonData;
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        Debug.Log("Starting to fetch JSON from server: " + url);
 
-        // Prepare to load or create the JSON data
-        jsonData = new D_JSON
+        string existingJson = "{}"; // Default to an empty JSON object if fetching fails
+
+        // Step 1: Fetch existing JSON data from the server
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
         {
-            Veterans = new List<Dm_JSON>()
-        };
+            yield return www.SendWebRequest();
 
-        // Check if we are loading the existing JSON or creating new
-        string path = "https://vm-86bbe67b.na4u.ru/ww2/img/data.json"; // Use a local path only for debugging, this will be sent to the server instead
-
-        if (File.Exists(path))
-        {
-            string existingJson = File.ReadAllText(path);
-            jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
+                existingJson = www.downloadHandler.text;  // Store the existing data
+            }
+            else
+            {
+                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
+                Debug.LogError("Full response: " + www.downloadHandler.text);  // Log the full response
+            }
         }
 
-        // Update or add a new veteran
+        // Step 2: Parse the existing JSON data into the D_JSON object
+        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
+
+        // Step 3: Ensure the Veterans list is initialized
+        if (jsonData.Veterans == null)
+        {
+            Debug.LogWarning("Invalid or empty JSON. Initializing new structure.");
+            jsonData = new D_JSON { Veterans = new List<Dm_JSON>() };
+        }
+
+        // Step 4: Update or add a new veteran
         int existingIndex = jsonData.Veterans.FindIndex(v => v.FullName == _txtInputFIO.text);
         if (existingIndex != -1)
         {
+            // Update existing veteran
             var existingVeteran = jsonData.Veterans[existingIndex];
             existingVeteran.ImageURL = _imageURL;
             existingVeteran.DateOfBitrh = _txtInputDateOfBirth.text;
@@ -367,6 +322,7 @@ public class scr_MainForm : MonoBehaviour
         }
         else
         {
+            // Add new veteran
             Dm_JSON newVeteran = new Dm_JSON
             {
                 FullName = _txtInputFIO.text,
@@ -386,17 +342,19 @@ public class scr_MainForm : MonoBehaviour
                 });
             }
 
-            jsonData.Veterans.Add(newVeteran);
+            jsonData.Veterans.Add(newVeteran);  // Add the new veteran to the list
         }
 
-        // Convert to JSON string
-        string json = JsonUtility.ToJson(jsonData, true);
+        // Step 5: Convert the updated data back to JSON
+        string updatedJson = JsonUtility.ToJson(jsonData, true);
 
-        // Upload the JSON data to the server
-        StartCoroutine(UploadJSONToServer(json));
+        // Step 6: Upload the updated JSON back to the server
+        yield return StartCoroutine(UploadJSONToServer(updatedJson));
 
-        Debug.Log("JSON data prepared for upload.");
+        Debug.Log("JSON data updated and uploaded.");
     }
+
+
 
 
     //private void V_SaveDataToJSON()
