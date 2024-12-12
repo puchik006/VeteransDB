@@ -27,6 +27,7 @@ public class scr_MainForm : MonoBehaviour
     [SerializeField] private Button _btnAddReward;
     [SerializeField] private Button _btnSearch;
     [SerializeField] private Button _btnCheckPamyat;
+    [SerializeField] private Button _btnDeleteCard;
 
     [Header("String prefabs")]
     [SerializeField] private scr_RewardString _rewardStringPrefab;
@@ -62,7 +63,25 @@ public class scr_MainForm : MonoBehaviour
         _btnAddCard.onClick.AddListener(() => V_NewCard());
         _btnSearch.onClick.AddListener(() => StartCoroutine(V_Search()));
         _btnCheckPamyat.onClick.AddListener(() => V_CheckPamyatNaroda());
+        _btnDeleteCard.onClick.AddListener(() => V_DeleteCard());
         
+    }
+
+    private void V_DeleteCard()
+    {
+        StartCoroutine(V_DeleteDataFromJSON());
+    }
+
+    private void V_InfoPanelOpen(string message)
+    {
+        _infoPanel.SetActive(true);
+        _infoText.text = message;
+    }
+
+    private void V_InfoPanleClose()
+    {
+        _infoText.text = string.Empty;
+        _infoPanel.SetActive(false);
     }
 
     [DllImport("__Internal")]
@@ -112,6 +131,8 @@ public class scr_MainForm : MonoBehaviour
 
     private IEnumerator UploadPhotoToServer(string fileName)
     {
+        V_InfoPanelOpen("Loading");
+
         if (_imageInput == null || _imageInput.sprite == null) yield break;
 
         Sprite sprite = _imageInput.sprite;
@@ -152,14 +173,19 @@ public class scr_MainForm : MonoBehaviour
                 _imageURL = "https://vm-86bbe67b.na4u.ru/ww2/img/" + fileName + ".png"; 
             }
         }
+
+        V_InfoPanleClose();
     }
 
     //LOAD SPRITE
     private async Task<Sprite> LoadSpriteFromServer(string imageUrl)
     {
+        V_InfoPanelOpen("Loading");
+
         if (string.IsNullOrEmpty(imageUrl))
         {
             Debug.LogWarning("Image URL is empty or null.");
+            V_InfoPanleClose();
             return null;
         }
 
@@ -180,14 +206,18 @@ public class scr_MainForm : MonoBehaviour
 
                 // Create a sprite from the texture
                 Rect rect = new Rect(0, 0, texture.width, texture.height);
+                V_InfoPanleClose();
                 return Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f));
             }
             else
             {
                 Debug.LogError($"Failed to load image from server: {request.error}");
+                V_InfoPanleClose();
                 return null;
             }
         }
+
+
     }
 
     //Rewards
@@ -245,6 +275,8 @@ public class scr_MainForm : MonoBehaviour
 
     private IEnumerator V_SaveDataToJSON()
     {
+        V_InfoPanelOpen("Loading");
+
         string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
         Debug.Log("Starting to fetch JSON from server: " + url);
 
@@ -347,10 +379,14 @@ public class scr_MainForm : MonoBehaviour
         //_currentGUID = string.Empty;
 
         V_NewCard();
+
+        V_InfoPanleClose();
     }
 
     private IEnumerator UploadJSONToServer(string jsonData)
     {
+        V_InfoPanelOpen("Loading");
+
         // Prepare the form for the HTTP POST request
         WWWForm form = new WWWForm();
         form.AddField("JS", jsonData);  // Send the JSON data to the PHP script
@@ -368,6 +404,8 @@ public class scr_MainForm : MonoBehaviour
                 Debug.Log("Data uploaded successfully.");
             }
         }
+
+        V_InfoPanleClose();
     }
 
     //New Card
@@ -417,7 +455,9 @@ public class scr_MainForm : MonoBehaviour
 
     private IEnumerator V_ShowAllData()
     {
-        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        V_InfoPanelOpen("Loading...");
+
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json?" + DateTime.Now.Ticks.ToString();  // Cache-busting
         Debug.Log("Fetching data from server for ShowAllData.");
 
         using (UnityWebRequest www = UnityWebRequest.Get(url))
@@ -431,11 +471,12 @@ public class scr_MainForm : MonoBehaviour
 
                 if (jsonData.Veterans != null)
                 {
+                    V_DeleteSearchList();  // Clear old entries
+
                     foreach (var veteran in jsonData.Veterans)
                     {
                         scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
                         veteranPrefab.V_INITIALIZE(this, veteran);
-
                         _searchStrings.Add(veteranPrefab);
                     }
                 }
@@ -449,13 +490,17 @@ public class scr_MainForm : MonoBehaviour
                 Debug.LogError($"Failed to fetch data: {www.error}");
             }
         }
+
+        V_InfoPanleClose();
     }
 
     private IEnumerator V_Search()
     {
+        V_InfoPanelOpen("Loading...");
+
         string searchTerm = _txtSearchField.text.ToLower();
 
-        V_DeleteSearchList();
+        V_DeleteSearchList();  // Clear old search results
 
         if (string.IsNullOrEmpty(searchTerm))
         {
@@ -463,7 +508,7 @@ public class scr_MainForm : MonoBehaviour
             yield break;
         }
 
-        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json?" + DateTime.Now.Ticks.ToString();  // Cache-busting
         Debug.Log("Fetching data from server for Search.");
 
         using (UnityWebRequest www = UnityWebRequest.Get(url))
@@ -483,7 +528,6 @@ public class scr_MainForm : MonoBehaviour
                         {
                             scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
                             veteranPrefab.V_INITIALIZE(this, veteran);
-
                             _searchStrings.Add(veteranPrefab);
                         }
                     }
@@ -498,12 +542,83 @@ public class scr_MainForm : MonoBehaviour
                 Debug.LogError($"Failed to fetch data: {www.error}");
             }
         }
+
+        V_InfoPanleClose();
+    }
+
+    //DELETE CARD
+    private IEnumerator V_DeleteDataFromJSON()
+    {
+        V_InfoPanelOpen("Loading");
+
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        Debug.Log("Starting to fetch JSON from server: " + url);
+
+        // Step 1: Fetch existing JSON data from the server
+        string existingJson = "{}"; // Default to an empty JSON object if fetching fails
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
+                existingJson = www.downloadHandler.text;  // Store the existing data
+            }
+            else
+            {
+                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
+                Debug.LogError("Full response: " + www.downloadHandler.text);
+                yield break; // Exit if fetch fails
+            }
+        }
+
+        // Step 2: Parse JSON data into D_JSON object
+        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
+
+        // Step 3: Ensure Veterans list is initialized
+        if (jsonData.Veterans == null) jsonData.Veterans = new List<Dm_JSON>();
+
+        // Step 4: Find veteran by GUID and remove it
+        int removeIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
+        if (removeIndex != -1)
+        {
+            jsonData.Veterans.RemoveAt(removeIndex); // Remove veteran
+            Debug.Log($"Veteran with GUID {_currentGUID} removed.");
+        }
+        else
+        {
+            Debug.LogWarning($"Veteran with GUID {_currentGUID} not found.");
+        }
+
+        // Step 5: Convert updated data back to JSON
+        string updatedJson = JsonUtility.ToJson(jsonData, true);
+
+        // Step 6: Upload the updated JSON back to the server only if data has changed
+        if (removeIndex != -1) // Only upload if an entry was removed
+        {
+            Debug.Log("Uploading updated JSON data to the server...");
+            yield return StartCoroutine(UploadJSONToServer(updatedJson));
+            Debug.Log("JSON data updated and uploaded.");
+        }
+        else
+        {
+            Debug.Log("No changes made to JSON data, skipping upload.");
+        }
+
+        yield return StartCoroutine(V_Search());
+
+        V_NewCard();
+
+        V_InfoPanleClose();
     }
 
 
     //Check Pamyat Naroda
     public void V_CheckPamyatNaroda()
     {
+        _txtPamyat.text = string.Empty;
+
         string linkTemplate = "https://pamyat-naroda.ru/heroes/?last_name=FAMILYNAME&first_name=NAME&middle_name=MIDDLENAME" +
                               "&group=all&types=pamyat_commander:nagrady_nagrad_doc:nagrady_uchet_kartoteka:nagrady_ubilein_kartoteka:" +
                               "pdv_kart_in:pdv_kart_in_inostranec:pamyat_voenkomat:potery_vpp:pamyat_zsp_parts:kld_ran:kld_bolezn:kld_polit:kld_upk:kld_vmf:kld_partizan:potery_doneseniya_o_poteryah:" +
@@ -540,6 +655,8 @@ public class scr_MainForm : MonoBehaviour
 
     private IEnumerator FetchLinkContent(string url)
     {
+        V_InfoPanelOpen("Loading");
+
         using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
         {
             // Set a user-agent header to mimic a browser.
@@ -557,6 +674,7 @@ public class scr_MainForm : MonoBehaviour
                 Debug.Log($"Fetched content: {webRequest.downloadHandler.text}");
             }
         }
-    }
 
+        V_InfoPanleClose();
+    }
 }
