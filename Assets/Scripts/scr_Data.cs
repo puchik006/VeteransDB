@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System;
 
+/// <summary>
+/// Represent list of veterans
+/// </summary>
 [Serializable]
 public struct D_JSON
 {
@@ -8,7 +11,7 @@ public struct D_JSON
 }
 
 /// <summary>
-/// Represents veteran
+/// Represents one veteran
 /// </summary>
 [Serializable]
 public struct Dm_JSON
