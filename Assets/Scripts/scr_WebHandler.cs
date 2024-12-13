@@ -5,13 +5,18 @@ using UnityEngine;
 
 public class scr_WebHandler
 {
-    public IEnumerator FetchAndProcessData<T>(string endpoint, Action<T> onSuccess, Action<string> onError = null)
+    public IEnumerator FetchAndProcessData<T>(string endpoint, Action<T> onSuccess, Action<string> onError = null,bool useNoCors = false)
     {
         string url = endpoint + "?" + DateTime.Now.Ticks; // Cache-busting
         Debug.Log($"Fetching data from {url}.");
 
         using (UnityWebRequest www = UnityWebRequest.Get(url))
         {
+            if (useNoCors)
+            {
+                www.SetRequestHeader("mode", "no-cors");
+            }
+
             yield return www.SendWebRequest();
 
             if (www.result == UnityWebRequest.Result.Success)
@@ -34,4 +39,5 @@ public class scr_WebHandler
             }
         }
     }
+
 }

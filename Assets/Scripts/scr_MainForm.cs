@@ -54,21 +54,13 @@ public class scr_MainForm : MonoBehaviour
     {
         _webHandler = new ();
 
-        //_currentGUID = Guid.NewGuid().ToString();
-
-
-        //StartCoroutine(V_ShowAllData());
-
-
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
         _btnSaveCard.onClick.AddListener(() => V_SaveCard());
         _btnAddCard.onClick.AddListener(() => V_NewCard());
-        //_btnSearch.onClick.AddListener(() => StartCoroutine(V_Search()));
         _btnSearch.onClick.AddListener(() => StartCoroutine(V_LoadVeteransList()));
         _btnCheckPamyat.onClick.AddListener(() => V_CheckPamyatNaroda());
         _btnDeleteCard.onClick.AddListener(() => V_DeleteCard());
-
 
         StartCoroutine(V_LoadVeteransList());
 
@@ -79,8 +71,7 @@ public class scr_MainForm : MonoBehaviour
     private void V_NewCard()
     {
         _currentGUID = Guid.NewGuid().ToString();
-
-        StartCoroutine(DelayedLog());
+        Debug.Log("Current GUID: " + _currentGUID);
 
         _txtInputFIO.text = string.Empty;
         _txtInputDateOfBirth.text = string.Empty;
@@ -95,16 +86,76 @@ public class scr_MainForm : MonoBehaviour
         _imageURL = null;
     }
 
-    private IEnumerator DelayedLog()
-    {
-        yield return null;
-        Debug.Log("Current GUID: " + _currentGUID);
-    }
-
-
+    //DELETE CARD
     private void V_DeleteCard()
     {
         StartCoroutine(V_DeleteDataFromJSON());
+    }
+
+    private IEnumerator V_DeleteDataFromJSON()
+    {
+        V_InfoPanelOpen("Loading");
+
+        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        Debug.Log("Starting to fetch JSON from server: " + url);
+
+        // Step 1: Fetch existing JSON data from the server
+        string existingJson = "{}"; // Default to an empty JSON object if fetching fails
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
+                existingJson = www.downloadHandler.text;  // Store the existing data
+            }
+            else
+            {
+                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
+                Debug.LogError("Full response: " + www.downloadHandler.text);
+                yield break; // Exit if fetch fails
+            }
+        }
+
+        // Step 2: Parse JSON data into D_JSON object
+        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
+
+        // Step 3: Ensure Veterans list is initialized
+        if (jsonData.Veterans == null) jsonData.Veterans = new List<Dm_JSON>();
+
+        // Step 4: Find veteran by GUID and remove it
+        int removeIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
+        if (removeIndex != -1)
+        {
+            jsonData.Veterans.RemoveAt(removeIndex); // Remove veteran
+            Debug.Log($"Veteran with GUID {_currentGUID} removed.");
+        }
+        else
+        {
+            Debug.LogWarning($"Veteran with GUID {_currentGUID} not found.");
+        }
+
+        // Step 5: Convert updated data back to JSON
+        string updatedJson = JsonUtility.ToJson(jsonData, true);
+
+        // Step 6: Upload the updated JSON back to the server only if data has changed
+        if (removeIndex != -1) // Only upload if an entry was removed
+        {
+            Debug.Log("Uploading updated JSON data to the server...");
+            yield return StartCoroutine(UploadJSONToServer(updatedJson));
+            Debug.Log("JSON data updated and uploaded.");
+        }
+        else
+        {
+            Debug.Log("No changes made to JSON data, skipping upload.");
+        }
+
+        yield return StartCoroutine(V_LoadVeteransList());
+
+        V_NewCard();
+
+        V_InfoPanelClose();
     }
 
     private void V_InfoPanelOpen(string message)
@@ -303,6 +354,8 @@ public class scr_MainForm : MonoBehaviour
 
         yield return StartCoroutine(V_LoadVeteransList());
 
+        Debug.Log("Current saved GUID: " + _currentGUID);
+
         V_NewCard();
     }
 
@@ -414,7 +467,7 @@ public class scr_MainForm : MonoBehaviour
 
     private IEnumerator UploadJSONToServer(string jsonData)
     {
-        V_InfoPanelOpen("Loading");
+        V_InfoPanelOpen("Loading...");
 
         // Prepare the form for the HTTP POST request
         WWWForm form = new WWWForm();
@@ -446,25 +499,18 @@ public class scr_MainForm : MonoBehaviour
         _txtInputDateOfBirth.text = veteran.DateOfBitrh;
         _txtInputDateOfDeath.text = veteran.DateOfDeath;
         _txtMainInfo.text = veteran.MainInfo;
+        _txtPamyat.text = string.Empty;
 
         _imageInput.sprite = await LoadSpriteFromServer(veteran.ImageURL);
         _imageURL = veteran.ImageURL;
 
         V_DeleteAllRewards();
         veteran.Rewards.ForEach(r => V_AddExistingReward(r.RewardName,r.YearOfReward));
+
+        Debug.Log("Current loaded GUID: " + _currentGUID);
     }
 
-    //Search
-    private void V_DeleteSearchList()
-    {
-        foreach (var searchString in _searchStrings)
-        {
-            Destroy(searchString.gameObject);
-        }
-        _searchStrings.Clear();
-    }
-
-
+    #region Search
     private IEnumerator V_LoadVeteransList()
     {
         V_InfoPanelOpen("Loading...");
@@ -505,170 +551,17 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
-
-    //private IEnumerator V_ShowAllData()
-    //{
-    //    V_InfoPanelOpen("Loading...");
-
-    //    string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json?" + DateTime.Now.Ticks.ToString();  // Cache-busting
-    //    Debug.Log("Fetching data from server for ShowAllData.");
-
-    //    using (UnityWebRequest www = UnityWebRequest.Get(url))
-    //    {
-    //        yield return www.SendWebRequest();
-
-    //        if (www.result == UnityWebRequest.Result.Success)
-    //        {
-    //            string json = www.downloadHandler.text;
-    //            D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
-
-    //            if (jsonData.Veterans != null)
-    //            {
-    //                V_DeleteSearchList();  // Clear old entries
-
-    //                foreach (var veteran in jsonData.Veterans)
-    //                {
-    //                    scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
-    //                    veteranPrefab.V_INITIALIZE(this, veteran);
-    //                    _searchStrings.Add(veteranPrefab);
-    //                }
-    //            }
-    //            else
-    //            {
-    //                Debug.LogWarning("No data or invalid JSON structure.");
-    //            }
-    //        }
-    //        else
-    //        {
-    //            Debug.LogError($"Failed to fetch data: {www.error}");
-    //        }
-    //    }
-
-    //    V_InfoPanelClose();
-    //}
-
-    //private IEnumerator V_Search()
-    //{
-    //    V_InfoPanelOpen("Loading...");
-
-    //    string searchTerm = _txtSearchField.text.ToLower();
-
-    //    V_DeleteSearchList();  // Clear old search results
-
-    //    if (string.IsNullOrEmpty(searchTerm))
-    //    {
-    //        yield return StartCoroutine(V_ShowAllData());
-    //        yield break;
-    //    }
-
-    //    string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json?" + DateTime.Now.Ticks.ToString();  // Cache-busting
-    //    Debug.Log("Fetching data from server for Search.");
-
-    //    using (UnityWebRequest www = UnityWebRequest.Get(url))
-    //    {
-    //        yield return www.SendWebRequest();
-
-    //        if (www.result == UnityWebRequest.Result.Success)
-    //        {
-    //            string json = www.downloadHandler.text;
-    //            D_JSON jsonData = JsonUtility.FromJson<D_JSON>(json);
-
-    //            if (jsonData.Veterans != null)
-    //            {
-    //                foreach (var veteran in jsonData.Veterans)
-    //                {
-    //                    if (veteran.FullName.ToLower().Contains(searchTerm))
-    //                    {
-    //                        scr_SearchString veteranPrefab = Instantiate(_veteranStringPrefab, _veteranListPlace.transform);
-    //                        veteranPrefab.V_INITIALIZE(this, veteran);
-    //                        _searchStrings.Add(veteranPrefab);
-    //                    }
-    //                }
-    //            }
-    //            else
-    //            {
-    //                Debug.LogWarning("No data or invalid JSON structure.");
-    //            }
-    //        }
-    //        else
-    //        {
-    //            Debug.LogError($"Failed to fetch data: {www.error}");
-    //        }
-    //    }
-
-    //    V_InfoPanelClose();
-    //}
-
-    //DELETE CARD
-    private IEnumerator V_DeleteDataFromJSON()
+    private void V_DeleteSearchList()
     {
-        V_InfoPanelOpen("Loading");
-
-        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
-        Debug.Log("Starting to fetch JSON from server: " + url);
-
-        // Step 1: Fetch existing JSON data from the server
-        string existingJson = "{}"; // Default to an empty JSON object if fetching fails
-        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        foreach (var searchString in _searchStrings)
         {
-            yield return www.SendWebRequest();
-
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
-                existingJson = www.downloadHandler.text;  // Store the existing data
-            }
-            else
-            {
-                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
-                Debug.LogError("Full response: " + www.downloadHandler.text);
-                yield break; // Exit if fetch fails
-            }
+            Destroy(searchString.gameObject);
         }
-
-        // Step 2: Parse JSON data into D_JSON object
-        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
-
-        // Step 3: Ensure Veterans list is initialized
-        if (jsonData.Veterans == null) jsonData.Veterans = new List<Dm_JSON>();
-
-        // Step 4: Find veteran by GUID and remove it
-        int removeIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
-        if (removeIndex != -1)
-        {
-            jsonData.Veterans.RemoveAt(removeIndex); // Remove veteran
-            Debug.Log($"Veteran with GUID {_currentGUID} removed.");
-        }
-        else
-        {
-            Debug.LogWarning($"Veteran with GUID {_currentGUID} not found.");
-        }
-
-        // Step 5: Convert updated data back to JSON
-        string updatedJson = JsonUtility.ToJson(jsonData, true);
-
-        // Step 6: Upload the updated JSON back to the server only if data has changed
-        if (removeIndex != -1) // Only upload if an entry was removed
-        {
-            Debug.Log("Uploading updated JSON data to the server...");
-            yield return StartCoroutine(UploadJSONToServer(updatedJson));
-            Debug.Log("JSON data updated and uploaded.");
-        }
-        else
-        {
-            Debug.Log("No changes made to JSON data, skipping upload.");
-        }
-
-        //yield return StartCoroutine(V_Search());
-
-        yield return StartCoroutine(V_LoadVeteransList());
-
-        V_NewCard();
-
-        V_InfoPanelClose();
+        _searchStrings.Clear();
     }
+    #endregion
 
-    //Check Pamyat Naroda
+    #region Pamyat naroda
     public void V_CheckPamyatNaroda()
     {
         _txtPamyat.text = string.Empty;
@@ -679,18 +572,19 @@ public class scr_MainForm : MonoBehaviour
                               "potery_gospitali:potery_utochenie_poter:potery_spiski_zahoroneniy:potery_voennoplen:potery_iskluchenie_iz_spiskov:potery_kartoteki:potery_rvk_extra:potery_isp_extra:" +
                               "same_doroga:same_rvk:same_guk:potery_knigi_pamyati&page=1&grouppersons=1";
 
-        string fullName = _txtInputFIO.text;
-        string[] nameParts = fullName.Split(' ');
+        string fullName = _txtInputFIO.text.Trim(); 
+        string[] nameParts = fullName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
         if (nameParts.Length < 2 || nameParts.Length > 3)
         {
-            _txtPamyat.text = "Invalid name format. Please provide 'Family Name First Name [Middle Name]'.";
+            _txtPamyat.onSelect.RemoveAllListeners();
+            _txtPamyat.text = "Invalid name format";
             return;
         }
 
         string familyName = nameParts[0];
         string firstName = nameParts[1];
-        string middleName = nameParts.Length == 3 ? nameParts[2] : ""; 
+        string middleName = nameParts.Length == 3 ? nameParts[2] : "";
 
         // Replace placeholders in the link template.
         string finalLink = linkTemplate
@@ -701,34 +595,19 @@ public class scr_MainForm : MonoBehaviour
         // Save the link in the text field.
         _txtPamyat.text = finalLink;
 
-        // Execute the link to fetch its content.
-        StartCoroutine(FetchLinkContent(finalLink));
+        // Fetch the link content using the WebHandler class.
+        StartCoroutine(_webHandler.FetchAndProcessData<string>(
+            finalLink,
+            onSuccess: (response) => _txtPamyat.text = "Click link",
+            onError: (error) => _txtPamyat.text = "Click link",
+            useNoCors: true
+        ));
 
+        // Clear previous listeners to prevent duplicate calls.
+        _txtPamyat.onSelect.RemoveAllListeners();
+
+        // Add the listener for opening the URL.
         _txtPamyat.onSelect.AddListener(delegate { Application.OpenURL(finalLink); });
     }
-
-    private IEnumerator FetchLinkContent(string url)
-    {
-        V_InfoPanelOpen("Loading");
-
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-        {
-            // Set a user-agent header to mimic a browser.
-            webRequest.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36");
-
-            yield return webRequest.SendWebRequest();
-
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
-            {
-                Debug.LogError($"Error fetching URL: {webRequest.error}");
-                _txtPamyat.text = "Failed to fetch the link. Check console for details.";
-            }
-            else
-            {
-                Debug.Log($"Fetched content: {webRequest.downloadHandler.text}");
-            }
-        }
-
-        V_InfoPanelClose();
-    }
+    #endregion
 }
