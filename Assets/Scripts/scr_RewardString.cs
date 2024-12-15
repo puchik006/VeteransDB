@@ -31,4 +31,9 @@ public class scr_RewardString : MonoBehaviour
             _mainForm.V_DeleteReward(this); 
         }
     }
+
+    private void OnDestroy()
+    {
+        _btnDeleteReward.onClick.RemoveAllListeners();
+    }
 }

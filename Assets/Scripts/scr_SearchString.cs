@@ -24,4 +24,16 @@ public class scr_SearchString : MonoBehaviour
         _txtDateOfBirth.onSelect.AddListener(delegate { _mainForm.V_LoadCardFromJSON(_veteran); });
         _txtDateOfDeath.onSelect.AddListener(delegate { _mainForm.V_LoadCardFromJSON(_veteran); });
     }
+
+    private void OnDestroy()
+    {
+        if (_txtFullName != null)
+            _txtFullName.onSelect.RemoveAllListeners();
+
+        if (_txtDateOfBirth != null)
+            _txtDateOfBirth.onSelect.RemoveAllListeners();
+
+        if (_txtDateOfDeath != null)
+            _txtDateOfDeath.onSelect.RemoveAllListeners();
+    }
 }

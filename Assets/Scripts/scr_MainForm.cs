@@ -50,9 +50,14 @@ public class scr_MainForm : MonoBehaviour
 
     private scr_WebHandler _webHandler;
 
+    private D_JSON _currentJSON;
+
     void Awake()
     {
         _webHandler = new ();
+
+        //string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
+        //StartCoroutine(_webHandler.IE_Get(url, (reply) => _currentJSON = reply));
 
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
@@ -101,31 +106,41 @@ public class scr_MainForm : MonoBehaviour
 
         // Step 1: Fetch existing JSON data from the server
         string existingJson = "{}"; // Default to an empty JSON object if fetching fails
-        using (UnityWebRequest www = UnityWebRequest.Get(url))
-        {
-            yield return www.SendWebRequest();
 
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
-                existingJson = www.downloadHandler.text;  // Store the existing data
-            }
-            else
-            {
-                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
-                Debug.LogError("Full response: " + www.downloadHandler.text);
-                yield break; // Exit if fetch fails
-            }
-        }
+        //using (UnityWebRequest www = UnityWebRequest.Get(url))
+        //{
+        //    yield return www.SendWebRequest();
+
+        //    if (www.result == UnityWebRequest.Result.Success)
+        //    {
+        //        Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
+        //        existingJson = www.downloadHandler.text;  // Store the existing data
+        //    }
+        //    else
+        //    {
+        //        Debug.LogError($"Failed to fetch JSON from server: {www.error}");
+        //        Debug.LogError("Full response: " + www.downloadHandler.text);
+        //        yield break; // Exit if fetch fails
+        //    }
+        //}
+
+        yield return StartCoroutine(_webHandler.IE_Get(url, (reply) => existingJson = reply));
 
         // Step 2: Parse JSON data into D_JSON object
         D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
 
         // Step 3: Ensure Veterans list is initialized
-        if (jsonData.Veterans == null) jsonData.Veterans = new List<Dm_JSON>();
-
+        if (jsonData.Veterans == null) 
+        {
+            Debug.Log("empty list");
+            jsonData.Veterans = new List<Dm_JSON>();
+        }
+        
         // Step 4: Find veteran by GUID and remove it
         int removeIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
+
+        Debug.Log("Index: " +  removeIndex);
+
         if (removeIndex != -1)
         {
             jsonData.Veterans.RemoveAt(removeIndex); // Remove veteran
@@ -350,18 +365,17 @@ public class scr_MainForm : MonoBehaviour
 
         yield return StartCoroutine(V_SaveDataToJSON());
 
-        //yield return StartCoroutine(V_Search());
+        Debug.Log("Load veteran list...");
 
         yield return StartCoroutine(V_LoadVeteransList());
 
         Debug.Log("Current saved GUID: " + _currentGUID);
-
         V_NewCard();
     }
 
     private IEnumerator V_SaveDataToJSON()
     {
-        V_InfoPanelOpen("Loading");
+        V_InfoPanelOpen("Saving data...");
 
         string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
         Debug.Log("Starting to fetch JSON from server: " + url);
@@ -430,6 +444,12 @@ public class scr_MainForm : MonoBehaviour
         {
             Debug.Log("Save new veteran: " + _currentGUID);
 
+            if (_currentGUID == string.Empty) 
+            {
+                _currentGUID = Guid.NewGuid().ToString();
+                Debug.Log("NEW GUID GENERATED");
+            }
+
             // Add new veteran
             Dm_JSON newVeteran = new Dm_JSON
             {
@@ -467,7 +487,7 @@ public class scr_MainForm : MonoBehaviour
 
     private IEnumerator UploadJSONToServer(string jsonData)
     {
-        V_InfoPanelOpen("Loading...");
+        V_InfoPanelOpen("Loading data...");
 
         // Prepare the form for the HTTP POST request
         WWWForm form = new WWWForm();
@@ -484,6 +504,8 @@ public class scr_MainForm : MonoBehaviour
             else
             {
                 Debug.Log("Data uploaded successfully.");
+
+                Debug.Log(jsonData);
             }
         }
 
