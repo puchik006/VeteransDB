@@ -44,32 +44,40 @@ public class scr_MainForm : MonoBehaviour
     private List<scr_RewardString> _rewardStrings = new();
     private List<scr_SearchString> _searchStrings = new();
 
-    private string _databasePath;
     private string _imageURL;
     private string _currentGUID;
 
+    //new attempt
     private scr_WebHandler _webHandler;
+    private D_JSON _currentJSON = new ();
+    private string _dataJSONAdress = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
 
-    private D_JSON _currentJSON;
 
     void Awake()
     {
         _webHandler = new ();
 
-        //string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
-        //StartCoroutine(_webHandler.IE_Get(url, (reply) => _currentJSON = reply));
-
         _btnAddPhoto.onClick.AddListener(() => V_AddPhoto());
         _btnAddReward.onClick.AddListener(() => V_AddNewReward());
         _btnSaveCard.onClick.AddListener(() => V_SaveCard());
         _btnAddCard.onClick.AddListener(() => V_NewCard());
-        _btnSearch.onClick.AddListener(() => StartCoroutine(V_LoadVeteransList()));
+        _btnSearch.onClick.AddListener(() => V_LoadVeteransList());
         _btnCheckPamyat.onClick.AddListener(() => V_CheckPamyatNaroda());
         _btnDeleteCard.onClick.AddListener(() => V_DeleteCard());
 
-        StartCoroutine(V_LoadVeteransList());
+        V_DownloadCurentJSON();
 
         V_NewCard();
+    }
+
+    private void V_DownloadCurentJSON()
+    {
+        StartCoroutine(_webHandler.IE_Get(_dataJSONAdress, (reply) =>
+        {
+            _currentJSON = JsonUtility.FromJson<D_JSON>(reply);
+            Debug.Log(_currentJSON.ToString());
+            V_LoadVeteransList();
+        }));
     }
 
     //New Card
@@ -94,65 +102,31 @@ public class scr_MainForm : MonoBehaviour
     //DELETE CARD
     private void V_DeleteCard()
     {
-        StartCoroutine(V_DeleteDataFromJSON());
+       StartCoroutine(V_DeleteDataFromJSON());
     }
 
     private IEnumerator V_DeleteDataFromJSON()
     {
-        V_InfoPanelOpen("Loading");
-
-        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
-        Debug.Log("Starting to fetch JSON from server: " + url);
-
-        // Step 1: Fetch existing JSON data from the server
-        string existingJson = "{}"; // Default to an empty JSON object if fetching fails
-
-        //using (UnityWebRequest www = UnityWebRequest.Get(url))
-        //{
-        //    yield return www.SendWebRequest();
-
-        //    if (www.result == UnityWebRequest.Result.Success)
-        //    {
-        //        Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
-        //        existingJson = www.downloadHandler.text;  // Store the existing data
-        //    }
-        //    else
-        //    {
-        //        Debug.LogError($"Failed to fetch JSON from server: {www.error}");
-        //        Debug.LogError("Full response: " + www.downloadHandler.text);
-        //        yield break; // Exit if fetch fails
-        //    }
-        //}
-
-        yield return StartCoroutine(_webHandler.IE_Get(url, (reply) => existingJson = reply));
-
-        // Step 2: Parse JSON data into D_JSON object
-        D_JSON jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
-
-        // Step 3: Ensure Veterans list is initialized
-        if (jsonData.Veterans == null) 
-        {
-            Debug.Log("empty list");
-            jsonData.Veterans = new List<Dm_JSON>();
-        }
+        V_InfoPanelOpen("Deleting from database... " + _currentJSON.Veterans.Find(v => v.GUID == _currentGUID).FullName);
         
         // Step 4: Find veteran by GUID and remove it
-        int removeIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
+        int removeIndex = _currentJSON.Veterans.FindIndex(v => v.GUID == _currentGUID);
 
         Debug.Log("Index: " +  removeIndex);
 
         if (removeIndex != -1)
         {
-            jsonData.Veterans.RemoveAt(removeIndex); // Remove veteran
+            _currentJSON.Veterans.RemoveAt(removeIndex); // Remove veteran
             Debug.Log($"Veteran with GUID {_currentGUID} removed.");
         }
         else
         {
             Debug.LogWarning($"Veteran with GUID {_currentGUID} not found.");
+            yield return $"Not found {_currentGUID}";
         }
 
         // Step 5: Convert updated data back to JSON
-        string updatedJson = JsonUtility.ToJson(jsonData, true);
+        string updatedJson = JsonUtility.ToJson(_currentJSON, true);
 
         // Step 6: Upload the updated JSON back to the server only if data has changed
         if (removeIndex != -1) // Only upload if an entry was removed
@@ -166,12 +140,14 @@ public class scr_MainForm : MonoBehaviour
             Debug.Log("No changes made to JSON data, skipping upload.");
         }
 
-        yield return StartCoroutine(V_LoadVeteransList());
+        V_LoadVeteransList();
 
         V_NewCard();
 
         V_InfoPanelClose();
     }
+
+    //WORKING STUFF
 
     private void V_InfoPanelOpen(string message)
     {
@@ -221,14 +197,9 @@ public class scr_MainForm : MonoBehaviour
         }
     }
 
-    private void V_SavePhotoOnDisk(string fileName)
-    {
-        StartCoroutine(UploadPhotoToServer(fileName));
-    }
-
     private IEnumerator UploadPhotoToServer(string fileName)
     {
-        V_InfoPanelOpen("Loading");
+        V_InfoPanelOpen("Upload photo to server...");
 
         if (_imageInput == null || _imageInput.sprite == null) yield break;
 
@@ -277,7 +248,7 @@ public class scr_MainForm : MonoBehaviour
     //LOAD SPRITE
     private async Task<Sprite> LoadSpriteFromServer(string imageUrl)
     {
-        V_InfoPanelOpen("Loading");
+        V_InfoPanelOpen("Loading photo from server...");
 
         if (string.IsNullOrEmpty(imageUrl))
         {
@@ -349,6 +320,8 @@ public class scr_MainForm : MonoBehaviour
         _rewardStrings.Clear();
     }
 
+    //END OF WORKING STUFF
+
     //Save
     private void V_SaveCard()
     {
@@ -367,7 +340,7 @@ public class scr_MainForm : MonoBehaviour
 
         Debug.Log("Load veteran list...");
 
-        yield return StartCoroutine(V_LoadVeteransList());
+        V_LoadVeteransList();
 
         Debug.Log("Current saved GUID: " + _currentGUID);
         V_NewCard();
@@ -377,42 +350,8 @@ public class scr_MainForm : MonoBehaviour
     {
         V_InfoPanelOpen("Saving data...");
 
-        string url = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
-        Debug.Log("Starting to fetch JSON from server: " + url);
-
-        string existingJson = "{}"; // Default to an empty JSON object if fetching fails
-
-        // Step 1: Fetch existing JSON data from the server
-        using (UnityWebRequest www = UnityWebRequest.Get(url))
-        {
-            yield return www.SendWebRequest();
-
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Successfully fetched JSON: " + www.downloadHandler.text);
-                existingJson = www.downloadHandler.text;  // Store the existing data
-            }
-            else
-            {
-                Debug.LogError($"Failed to fetch JSON from server: {www.error}");
-                Debug.LogError("Full response: " + www.downloadHandler.text);  // Log the full response
-            }
-        }
-        //
-        // Step 2: Parse the existing JSON data into the D_JSON object
-        D_JSON jsonData;
-
-        jsonData = JsonUtility.FromJson<D_JSON>(existingJson);
-
-        // Step 3: Ensure the Veterans list is initialized
-        if (jsonData.Veterans == null)
-        {
-            Debug.LogWarning("Invalid or empty JSON. Initializing new structure.");
-            jsonData = new D_JSON { Veterans = new List<Dm_JSON>() }; // Initialize list if null
-        }
-
         // Step 4: Search for an existing veteran by GUID or add a new one
-        int existingIndex = jsonData.Veterans.FindIndex(v => v.GUID == _currentGUID);
+        int existingIndex = _currentJSON.Veterans.FindIndex(v => v.GUID == _currentGUID);
 
         if (existingIndex != -1)
         {
@@ -420,7 +359,7 @@ public class scr_MainForm : MonoBehaviour
             Debug.Log("Update existing veteran: " + _currentGUID);
 
             // Update existing veteran
-            var existingVeteran = jsonData.Veterans[existingIndex];
+            var existingVeteran = _currentJSON.Veterans[existingIndex];
             existingVeteran.GUID = _currentGUID;
             existingVeteran.FullName = _txtInputFIO.text;
             existingVeteran.ImageURL = _imageURL;
@@ -438,7 +377,7 @@ public class scr_MainForm : MonoBehaviour
                 });
             }
 
-            jsonData.Veterans[existingIndex] = existingVeteran;  // Update the veteran in the list
+            _currentJSON.Veterans[existingIndex] = existingVeteran;  // Update the veteran in the list
         }
         else
         {
@@ -471,16 +410,18 @@ public class scr_MainForm : MonoBehaviour
                 });
             }
 
-            jsonData.Veterans.Add(newVeteran);  // Add the new veteran to the list
+            _currentJSON.Veterans.Add(newVeteran);  // Add the new veteran to the list
         }
 
         // Step 5: Convert the updated data back to JSON
-        string updatedJson = JsonUtility.ToJson(jsonData, true);
+        string updatedJson = JsonUtility.ToJson(_currentJSON, true);
 
         // Step 6: Upload the updated JSON back to the server
         yield return StartCoroutine(UploadJSONToServer(updatedJson));
 
         Debug.Log("JSON data updated and uploaded.");
+
+        Debug.Log("Uploaded JSON: " + _currentJSON);
 
         V_InfoPanelClose();
     }
@@ -533,21 +474,9 @@ public class scr_MainForm : MonoBehaviour
     }
 
     #region Search
-    private IEnumerator V_LoadVeteransList()
+    private void V_LoadVeteransList()
     {
-        V_InfoPanelOpen("Loading...");
-
-        string searchTerm = _txtSearchField.text;
-
-        string endpoint = "https://vm-86bbe67b.na4u.ru/ww2/data.json";
-
-        yield return _webHandler.FetchAndProcessData<D_JSON>(
-            endpoint,
-            jsonData => HandleVeteranData(jsonData, searchTerm),
-            error => Debug.LogError($"Failed to load data: {error}")
-        );
-
-        V_InfoPanelClose();
+        HandleVeteranData(_currentJSON, _txtSearchField.text);
     }
 
     private void HandleVeteranData(D_JSON jsonData, string searchTerm)
